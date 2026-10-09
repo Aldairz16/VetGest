@@ -30,6 +30,34 @@ SERVICES = [
 
 
 def seed():
+    lock_down_data_api()
+    if get_settings().seed_demo_catalog:
+        seed_catalog()
+    bootstrap_admin()
+
+
+def lock_down_data_api():
+    """Supabase publishes the public schema through its Data API using public keys.
+
+    VetGest only talks to PostgreSQL through the backend (which connects as the table
+    owner), so every table gets RLS with no policies and loses anon/authenticated grants.
+    Runs on every start so tables added by future migrations are covered too.
+    """
+    with SessionLocal.begin() as db:
+        roles = set(db.scalars(text("SELECT rolname FROM pg_roles WHERE rolname IN ('anon', 'authenticated')")))
+        if not roles:
+            return  # Plain PostgreSQL (local, CI): nothing to lock down.
+        tables = db.scalars(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")).all()
+        grantees = ", ".join(sorted(roles))
+        for table in tables:
+            db.execute(text(f'ALTER TABLE public."{table}" ENABLE ROW LEVEL SECURITY'))
+            db.execute(text(f'REVOKE ALL ON TABLE public."{table}" FROM {grantees}'))
+        db.execute(text(f"REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM {grantees}"))
+        db.execute(text(f"REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM {grantees}"))
+    print(f"Data API bloqueada para {grantees} en {len(tables)} tablas.")
+
+
+def seed_catalog():
     with SessionLocal.begin() as db:
         # Serialize concurrent startup seeds without overwriting existing catalog edits.
         db.execute(text("SELECT pg_advisory_xact_lock(71001)"))
@@ -48,7 +76,6 @@ def seed():
                                              description=detail, duration_minutes=minutes,
                                              price=Decimal(price)))
     print("Catálogo de demostración disponible: 3 veterinarias y 12 servicios.")
-    bootstrap_admin()
 
 
 def bootstrap_admin():

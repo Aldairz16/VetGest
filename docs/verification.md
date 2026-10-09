@@ -1,5 +1,26 @@
 # Registro de implementación y verificación
 
+## 9 de octubre de 2026 · Roles multi-clínica (rama `feature/roles-multiclinica`)
+
+Entorno: macOS (Apple M2), Docker 29.8.2, Compose 5.5.1. Red con inspección TLS (Fortinet) que bloquea `registry.npmjs.org`; se instaló desde `registry.yarnpkg.com` con `NPM_REGISTRY`, que valida contra el mismo lockfile.
+
+| Comprobación | Resultado |
+|---|---|
+| `docker compose build` y `up` | API y BD saludables; web responde 200; `/api/health` OK |
+| Suite original antes de cambios | 25 pytest + Ruff OK; 29 Vitest + ESLint + TypeScript + build OK |
+| Migración `0002` sobre la base con datos de la `0001` | Aplicada en el arranque sin pérdida |
+| `alembic upgrade → downgrade 0001 → upgrade` y `alembic check` | OK, sin divergencias modelo/migración |
+| Backend final | **35 pytest** (roles, aislamiento entre clínicas, flujo de citas, historial, recordatorios, alta/suspensión, bloqueo de la Data API de Supabase) + Ruff OK |
+| Frontend final | **32 Vitest** (incluye redirección por rol y cambio obligatorio de contraseña) + ESLint + TypeScript + build OK |
+| Navegador (localhost:8080) | Recepción confirmó y asignó una cita → el veterinario registró la atención con una vacuna → el propietario vio el historial y el recordatorio → el admin de plataforma vio las métricas y las clínicas → el admin de la clínica vio su equipo. El propietario es redirigido fuera de `/clinica`. Sin errores de consola; sin desbordamiento a 375 px |
+| Bug encontrado y corregido | `BOOTSTRAP_ADMIN_EMAIL` con dominio `.local` creaba una cuenta que el login rechazaba; ahora la configuración lo valida al arrancar |
+
+**Pendiente:** Playwright E2E no se actualizó para los nuevos roles; el despliegue en Render/Supabase no se ha ejecutado (ver [deploy.md](deploy.md)).
+
+---
+
+## 10 de septiembre de 2026 · Sprint 1 (registro original)
+
 Fecha de trabajo: 10 de septiembre de 2026. Repositorio inicial vacío.
 
 ## Estado honesto

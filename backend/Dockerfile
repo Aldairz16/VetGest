@@ -15,3 +15,6 @@ USER root
 RUN pip install --no-cache-dir -r requirements-dev.txt
 USER vetgest
 CMD ["sh", "-c", "alembic upgrade head && python -m app.seed && pytest -q && ruff check ."]
+
+# Last stage = default build target (used by Render). Compose keeps using "base"/"test".
+FROM base AS runtime
