@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Brand, ErrorState, Field, Notice, petPhoto } from '../components/ui'
 import { api, json } from '../lib/api'
 import { loginSchema, registerSchema, type LoginValues, type RegisterValues } from '../lib/schemas'
+import { homeFor } from '../lib/roles'
 import type { User } from '../lib/types'
 
 function AuthFrame({ children, register = false }: { children: React.ReactNode; register?: boolean }) {
@@ -42,7 +43,8 @@ export function Login() {
       const user = await api<User>('/auth/login', json('POST', data))
       client.clear(); client.setQueryData(['me'], user)
       const from = location.state?.from
-      navigate(typeof from === 'string' && (from === '/app' || from.startsWith('/app/')) ? from : '/app', { replace: true })
+      const home = homeFor(user)
+      navigate(typeof from === 'string' && (from === home || from.startsWith(`${home}/`)) ? from : home, { replace: true })
     } catch (e) { setError(e as Error) }
   }
   return <AuthFrame>{location.state?.registered && <Notice>Tu cuenta está lista. Inicia sesión para registrar a tu mascota.</Notice>}

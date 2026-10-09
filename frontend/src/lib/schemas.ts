@@ -38,6 +38,42 @@ export const appointmentSchema = z.object({
 }).refine(data => new Date(`${data.date}T${data.time}:00-05:00`).getTime() > Date.now(), {
   message: 'Elige una fecha y hora futuras (hora de Lima).', path: ['date'],
 })
+const password = z.string().min(10, 'Usa al menos 10 caracteres.').max(128, 'Usa hasta 128 caracteres.')
+const text = (min: number, max: number) => z.string().trim().min(min, min === 1 ? 'Este campo es obligatorio.' : `Usa al menos ${min} caracteres.`).max(max, `Usa hasta ${max} caracteres.`)
+const optionalDate = z.string().refine(v => v === '' || validDate(v), 'Ingresa una fecha válida.')
+export const passwordSchema = z.object({
+  current_password: z.string().min(1, 'Ingresa tu contraseña actual.').max(128),
+  new_password: password, confirmation: z.string().min(1, 'Confirma la nueva contraseña.'),
+}).refine(d => d.new_password === d.confirmation, { message: 'Las contraseñas no coinciden.', path: ['confirmation'] })
+export const staffSchema = profileSchema.extend({ email, role: z.enum(['admin', 'vet', 'reception'], { message: 'Selecciona un rol.' }), temporary_password: password })
+export const clinicSchema = z.object({
+  name: text(2, 120), address: text(5, 250), phone, opening_hours: text(3, 150), description: text(10, 2000),
+})
+export const clinicCreateSchema = clinicSchema.extend({ admin: profileSchema.extend({ email, temporary_password: password }) })
+export const serviceSchema = z.object({
+  name: text(2, 120), description: text(3, 2000),
+  duration_minutes: z.coerce.number({ invalid_type_error: 'Ingresa minutos.' }).int('Usa minutos enteros.').min(5, 'Mínimo 5 minutos.').max(600, 'Máximo 600 minutos.'),
+  price: z.coerce.number({ invalid_type_error: 'Ingresa un precio.' }).min(0, 'El precio no puede ser negativo.').max(100000).multipleOf(0.01, 'Usa hasta dos decimales.'),
+  is_active: z.boolean().default(true),
+})
+export const careSchema = z.object({
+  kind: z.enum(['Vacuna', 'Desparasitación', 'Tratamiento'], { message: 'Selecciona el tipo.' }),
+  name: text(2, 120), dose: z.string().max(120).default(''),
+  applied_on: z.string().refine(validDate, 'Ingresa una fecha válida.').refine(v => v <= todayLima(), 'No puede ser una fecha futura.'),
+  next_due_on: optionalDate.default(''), notes: z.string().max(2000).default(''),
+}).refine(d => !d.next_due_on || d.next_due_on >= d.applied_on, { message: 'Debe ser posterior a la aplicación.', path: ['next_due_on'] })
+export const recordSchema = z.object({
+  reason: text(3, 2000), diagnosis: text(3, 4000), indications: z.string().max(4000).default(''),
+  weight: z.union([z.literal(''), z.coerce.number().min(0.01, 'El peso debe ser mayor que cero.').max(1000).multipleOf(0.01, 'Usa hasta dos decimales.')]).default(''),
+  next_visit_on: optionalDate.default(''),
+})
+export type PasswordValues = z.infer<typeof passwordSchema>
+export type StaffValues = z.infer<typeof staffSchema>
+export type ClinicValues = z.infer<typeof clinicSchema>
+export type ClinicCreateValues = z.infer<typeof clinicCreateSchema>
+export type ServiceValues = z.infer<typeof serviceSchema>
+export type CareValues = z.infer<typeof careSchema>
+export type RecordValues = z.infer<typeof recordSchema>
 export type RegisterValues = z.infer<typeof registerSchema>
 export type LoginValues = z.infer<typeof loginSchema>
 export type ProfileValues = z.infer<typeof profileSchema>

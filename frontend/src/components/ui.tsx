@@ -27,7 +27,8 @@ export function Field({ id, label, error, hint, children, full = false }: { id: 
 }
 export function Notice({ children }: { children: ReactNode }) { return <div className="notice" role="status">{children}</div> }
 export function Back({ to, children }: { to: string; children: ReactNode }) { return <Link to={to} className="back-link"><ArrowLeft size={17} />{children}</Link> }
-export function Badge({ status }: { status: string }) { return <span className={`badge ${status === 'Pendiente' ? 'pending' : 'cancelled'}`}>{status}</span> }
+const badgeTone: Record<string, string> = { Pendiente: 'pending', Confirmada: 'confirmed', Atendida: 'attended', Cancelada: 'cancelled', 'No asistió': 'noshow', Activa: 'attended', Suspendida: 'cancelled', Inactivo: 'cancelled' }
+export function Badge({ status }: { status: string }) { return <span className={`badge ${badgeTone[status] ?? 'owner-badge'}`}>{status}</span> }
 export function ConfirmDialog({ open, title, children, confirmLabel, pending, onCancel, onConfirm, error }: {
   open: boolean; title: string; children: ReactNode; confirmLabel: string;
   pending: boolean; onCancel: () => void; onConfirm: () => void; error?: Error | null;

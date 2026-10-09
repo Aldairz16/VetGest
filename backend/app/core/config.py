@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import EmailStr, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8080"]
     # Optional: creates the first platform administrator on startup if the email is unused.
-    bootstrap_admin_email: str | None = None
+    # Validated like sign-in emails so the account can actually log in (e.g. rejects .local).
+    bootstrap_admin_email: EmailStr | None = None
     bootstrap_admin_password: str | None = Field(default=None, min_length=12)
 
     @property

@@ -55,7 +55,7 @@ def bootstrap_admin():
     settings = get_settings()
     if not settings.bootstrap_admin_email or not settings.bootstrap_admin_password:
         return
-    email = settings.bootstrap_admin_email.strip().lower()
+    email = str(settings.bootstrap_admin_email).lower()
     with SessionLocal.begin() as db:
         db.execute(text("SELECT pg_advisory_xact_lock(71002)"))
         if db.scalar(select(User.id).where(User.email == email)):

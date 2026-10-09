@@ -122,6 +122,9 @@ h3 { font-size: 1.1rem; }
 .badge { display: inline-flex; align-items: center; justify-content: center; padding: 5px 12px; border-radius: 7px; font-size: .875rem; line-height: 1.5; font-weight: 550; flex-shrink: 0; }
 .badge.pending { background: #fbf1db; color: #85601c; }
 .badge.cancelled { background: #f1f1f3; color: #73737e; }
+.badge.confirmed { background: #e3f0fb; color: #23577e; }
+.badge.attended { background: #e3f3ea; color: #2c6a47; }
+.badge.noshow { background: #fbe7e4; color: #9a3a2c; }
 .badge.owner-badge { background: #eaf2e7; color: #516d47; }
 .back-link { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 23px; font-size: .875rem; color: #64807b; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 20px; }
@@ -336,3 +339,36 @@ dialog .muted { font-size: .9375rem; }
   .not-found { padding: 25px; } .not-found main { margin-top: 65px; } .not-found h1 { font-size: 2rem; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---- Clinic and platform workspaces ---- */
+.heading-icon { display: inline-flex; align-items: center; gap: 8px; }
+.sidebar-clinic { margin: -6px 12px 14px; font-size: .8125rem; font-weight: 650; color: var(--teal); overflow-wrap: anywhere; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 22px; }
+.toolbar .field { min-width: 160px; }
+.toolbar label.check, label.check { display: inline-flex; align-items: center; gap: 8px; font-size: .875rem; color: #355054; min-height: 46px; }
+.table-wrap { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.data-table th { text-align: left; font-weight: 600; color: var(--muted); font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; padding: 14px 18px; border-bottom: 1px solid var(--line); background: #fafcfb; }
+.data-table td { padding: 14px 18px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.data-table tr:last-child td { border-bottom: 0; }
+.data-table td small { display: block; color: var(--muted); font-size: .75rem; }
+.data-table .actions { text-align: right; white-space: nowrap; }
+.timeline { display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; }
+.timeline-item { border-left: 3px solid var(--lime); padding: 2px 0 2px 16px; }
+.timeline-item h3 { font-size: .9375rem; font-weight: 650; }
+.timeline-item p { font-size: .875rem; color: #3f5659; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.timeline-item .meta { font-size: .75rem; color: var(--muted); }
+.reminder-list { display: flex; flex-direction: column; }
+.reminder-row { display: flex; align-items: center; gap: 14px; padding: 15px 24px; border-top: 1px solid var(--line); font-size: .875rem; }
+.reminder-row div { flex: 1; min-width: 0; }
+.reminder-row small { display: block; color: var(--muted); }
+.reminder-row.overdue .stat-icon { background: #fbe7e4; color: #9a3a2c; }
+.form-panel h3.sub { font-size: 1rem; margin: 6px 0 2px; }
+.inline-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.care-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; padding: 16px; border: 1px dashed #cfdada; border-radius: 12px; }
+.stack { display: flex; flex-direction: column; gap: 22px; }
+@media (max-width: 700px) {
+  .care-row { grid-template-columns: 1fr; }
+  .data-table th, .data-table td { padding: 12px; }
+  .toolbar .field { min-width: 0; flex: 1 1 140px; }
+}
