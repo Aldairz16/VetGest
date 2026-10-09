@@ -38,7 +38,7 @@ def login(data: LoginInput, response: Response, db: Db):
     if not user or not valid:
         raise HTTPException(401, "El correo o la contraseña son incorrectos.")
     if not can_sign_in(user):
-        raise HTTPException(403, "Tu cuenta o tu clínica está desactivada. Contacta a su administrador.")
+        raise HTTPException(403, "Tu cuenta o tu veterinaria está desactivada. Contacta a su administrador.")
     settings = get_settings()
     response.set_cookie("vetgest_session", create_token(user), httponly=True,
                         secure=settings.cookie_secure, samesite="lax", path="/api",

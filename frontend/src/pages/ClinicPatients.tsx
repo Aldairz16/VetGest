@@ -16,9 +16,9 @@ import { careSchema, recordSchema, todayLima, type CareValues } from '../lib/sch
 export function Patients() {
   const [search, setSearch] = useState('')
   const patients = usePatients(search)
-  return <><PageHeader eyebrow="FICHAS CLÍNICAS" title="Pacientes" description="Mascotas que solicitaron cita o fueron atendidas en tu clínica." />
+  return <><PageHeader eyebrow="FICHAS CLÍNICAS" title="Pacientes" description="Mascotas que solicitaron cita o fueron atendidas en tu veterinaria." />
     <div className="catalog-toolbar"><div className="search-input"><Search size={20} /><label className="sr-only" htmlFor="patient-search">Buscar por mascota o propietario</label><input id="patient-search" type="search" placeholder="Buscar por mascota o propietario…" maxLength={80} value={search} onChange={e => setSearch(e.target.value)} /></div></div>
-    {patients.isPending ? <Loading /> : patients.isError ? <ErrorState error={patients.error} retry={() => void patients.refetch()} /> : !patients.data.length ? <div className="panel"><EmptyState title={search ? 'Sin coincidencias' : 'Aún no hay pacientes'}>{search ? 'Prueba con otro nombre.' : 'Cuando un propietario solicite una cita en tu clínica, su mascota aparecerá aquí.'}</EmptyState></div>
+    {patients.isPending ? <Loading /> : patients.isError ? <ErrorState error={patients.error} retry={() => void patients.refetch()} /> : !patients.data.length ? <div className="panel"><EmptyState title={search ? 'Sin coincidencias' : 'Aún no hay pacientes'}>{search ? 'Prueba con otro nombre.' : 'Cuando un propietario solicite una cita en tu veterinaria, su mascota aparecerá aquí.'}</EmptyState></div>
       : <div className="panel table-wrap"><table className="data-table"><thead><tr><th>Paciente</th><th>Especie y raza</th><th>Propietario</th><th>Teléfono</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{patients.data.map(p => <tr key={p.id}>
         <td><strong>{p.name}</strong><small>{p.sex} · {p.weight} kg</small></td><td>{p.species} · {p.breed}</td><td>{fullName(p.owner)}</td><td>{p.owner.phone}</td>
         <td className="actions"><Link className="text-link" to={`/clinica/pacientes/${p.id}`}>Ver ficha <ArrowRight size={15} /></Link></td></tr>)}</tbody></table></div>}
@@ -112,7 +112,7 @@ export function PatientDetail() {
       <section className="panel detail-panel"><h2>Ficha</h2><dl className="detail-grid">{[['Nacimiento aproximado', longDate(p.birth_date)], ['Peso', `${p.weight} kg`], ['Color', p.color], ['Propietario', fullName(p.owner)], ['Teléfono', p.owner.phone]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
         <div className="notes-section"><h3>Observaciones del propietario</h3><p>{p.notes || 'Sin observaciones.'}</p></div></section></div>
     {mode && <div style={{ marginTop: 24 }}>{mode === 'record' ? <RecordForm petId={String(p.id)} appointmentId={appointmentId} onSaved={() => saved('Atención registrada en el historial.')} /> : <CareForm petId={String(p.id)} onSaved={() => saved('Registro guardado en la cartilla.')} />}<p style={{ marginTop: 10 }}><button className="text-link" onClick={() => setMode(null)}>Cancelar registro</button></p></div>}
-    <div className="section-heading" style={{ padding: '30px 0 14px', border: 0 }}><h2>Historial clínico</h2><span className="muted">Todas las clínicas</span></div>
+    <div className="section-heading" style={{ padding: '30px 0 14px', border: 0 }}><h2>Historial clínico</h2><span className="muted">Todas las veterinarias</span></div>
     <HistoryView history={history} petName={p.name} />
   </>
 }

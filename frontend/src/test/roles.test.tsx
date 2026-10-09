@@ -24,7 +24,7 @@ function renderAt(path: string) {
 }
 afterEach(() => vi.restoreAllMocks())
 
-it('envía al personal de recepción a su espacio de clínica sin opciones de administrador', async () => {
+it('envía al personal de recepción a su espacio de veterinaria sin opciones de administrador', async () => {
   mockApi(reception)
   renderAt('/app')
   expect(await screen.findByText('Solicitudes por confirmar')).toBeVisible()
@@ -39,7 +39,7 @@ it('impide que recepción abra la gestión del equipo', async () => {
   expect(await screen.findByText('Solicitudes por confirmar')).toBeVisible()
 })
 
-it('exige cambiar la contraseña temporal antes de usar la clínica', async () => {
+it('exige cambiar la contraseña temporal antes de usar la veterinaria', async () => {
   mockApi({ ...reception, must_change_password: true })
   renderAt('/clinica')
   expect(await screen.findByRole('heading', { name: 'Crea tu contraseña personal' })).toBeVisible()

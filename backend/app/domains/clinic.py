@@ -41,7 +41,7 @@ from app.schemas import (
     StaffUpdate,
 )
 
-router = APIRouter(prefix="/clinic", tags=["Clínica"])
+router = APIRouter(prefix="/clinic", tags=["Veterinaria"])
 LIMA = ZoneInfo("America/Lima")
 # Allowed front-desk transitions. "Atendida" is only reached by registering a clinical record.
 TRANSITIONS = {
@@ -55,7 +55,7 @@ def clinic_appointment(db, member: ClinicMember, appointment_id: int, lock: bool
         .options(*appointment_options(), selectinload(Appointment.owner))
     appointment = db.scalar(query.with_for_update(of=Appointment) if lock else query)
     if not appointment:
-        raise HTTPException(404, "No encontramos esa cita en tu clínica.")
+        raise HTTPException(404, "No encontramos esa cita en tu veterinaria.")
     return appointment
 
 
@@ -71,7 +71,7 @@ def clinic_patient(db, member: ClinicMember, pet_id: int) -> Pet:
     pet = db.scalar(select(Pet).where(Pet.id == pet_id, related_to_clinic(member.clinic_id))
                     .options(selectinload(Pet.owner)))
     if not pet:
-        raise HTTPException(404, "Esta mascota no es paciente de tu clínica.")
+        raise HTTPException(404, "Esta mascota no es paciente de tu veterinaria.")
     return pet
 
 
@@ -80,7 +80,7 @@ def clinic_vet(db, member: ClinicMember, vet_id: int) -> ClinicMember:
         ClinicMember.user_id == vet_id, ClinicMember.clinic_id == member.clinic_id,
         ClinicMember.role.in_(("vet", "admin")), User.is_active.is_(True)))
     if not vet:
-        raise HTTPException(422, "Selecciona un veterinario activo de tu clínica.")
+        raise HTTPException(422, "Selecciona un veterinario activo de tu equipo.")
     return vet
 
 
@@ -302,7 +302,7 @@ def save_service(db, service: VeterinaryService):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(409, "Tu clínica ya tiene un servicio con ese nombre.") from None
+        raise HTTPException(409, "Tu veterinaria ya tiene un servicio con ese nombre.") from None
     return service
 
 

@@ -14,7 +14,7 @@ from app.domains import admin, appointments, auth, catalog, clinic, pets
 
 settings = get_settings()
 app = FastAPI(title="VetGest API", version="1.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json",
-              redoc_url=None, description="Propietarios, clínicas (administración, recepción y veterinarios) y administración de la plataforma. Inicia sesión en /auth/login para usar la cookie de sesión en Swagger.")
+              redoc_url=None, description="Propietarios, veterinarias (administración, recepción y veterinarios) y administración de la plataforma. Inicia sesión en /auth/login para usar la cookie de sesión en Swagger.")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
                    allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
                    allow_headers=["Content-Type"])

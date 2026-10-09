@@ -20,7 +20,7 @@ function StaffForm({ onDone }: { onDone: (email: string) => void }) {
       <Field id="last_name" label="Apellidos" error={e.last_name?.message}><input id="last_name" {...register('last_name')} /></Field>
       <Field id="email" label="Correo" error={e.email?.message}><input id="email" type="email" autoComplete="off" {...register('email')} /></Field>
       <Field id="phone" label="Teléfono" error={e.phone?.message}><input id="phone" type="tel" {...register('phone')} /></Field>
-      <Field id="role" label="Rol" error={e.role?.message}><select id="role" {...register('role')}><option value="reception">Recepción</option><option value="vet">Veterinario</option><option value="admin">Administrador de clínica</option></select></Field>
+      <Field id="role" label="Rol" error={e.role?.message}><select id="role" {...register('role')}><option value="reception">Recepción</option><option value="vet">Veterinario</option><option value="admin">Administrador de veterinaria</option></select></Field>
       <Field id="temporary_password" label="Contraseña temporal" hint="Mínimo 10 caracteres." error={e.temporary_password?.message}><input id="temporary_password" type="text" autoComplete="off" {...register('temporary_password')} /></Field>
       {mutation.isError && <div className="full"><ErrorState error={mutation.error} /></div>}
       <div className="form-actions full"><button className="button" disabled={mutation.isPending}><UserPlus size={17} />{mutation.isPending ? 'Creando…' : 'Crear cuenta'}</button></div>
@@ -86,7 +86,7 @@ export function ClinicSettings() {
   const mutation = useMutation({ mutationFn: (v: ClinicValues) => api<ClinicValues>('/clinic', json('PUT', v)), onSuccess: async data => { reset(data); setSaved(true); await client.invalidateQueries({ queryKey: ['clinic'] }); await client.invalidateQueries({ queryKey: ['me'] }) } })
   if (clinic.isPending) return <Loading />
   if (clinic.isError) return <ErrorState error={clinic.error} retry={() => void clinic.refetch()} />
-  return <><PageHeader eyebrow="PERFIL PÚBLICO" title="Datos de la clínica" description="Así te ven los propietarios en el catálogo." />
+  return <><PageHeader eyebrow="PERFIL PÚBLICO" title="Datos de la veterinaria" description="Así te ven los propietarios en el catálogo." />
     <section className="panel form-panel">{saved && <Notice>Datos actualizados.</Notice>}
       <form className="form-grid" noValidate onSubmit={handleSubmit(v => { setSaved(false); mutation.mutate(v) })}>
         <Field id="name" label="Nombre comercial" error={e.name?.message} full><input id="name" {...register('name')} /></Field>

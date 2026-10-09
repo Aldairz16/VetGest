@@ -120,7 +120,7 @@ export function ClinicAppointmentDetail() {
             {a.status === 'Confirmada' && new Date(a.starts_at).getTime() < Date.now() && <button className="button secondary" disabled={mutation.isPending} onClick={() => { mutation.reset(); setConfirm('No asistió') }}><UserX size={17} />No asistió</button>}
           </div>
         </div></section>}
-      {frontDesk && <section className="panel form-panel"><h2>Notas internas</h2><p className="muted">Solo las ve el equipo de la clínica.</p>
+      {frontDesk && <section className="panel form-panel"><h2>Notas internas</h2><p className="muted">Solo las ve el equipo de la veterinaria.</p>
         <div className="form-grid" style={{ marginTop: 12 }}><Field id="staff_notes" label="Notas" full><textarea id="staff_notes" rows={4} maxLength={2000} value={staffNotes} onChange={e => setNotes(e.target.value)} /></Field>
           <div className="form-actions full"><button className="button secondary" disabled={mutation.isPending || notes === undefined || notes === a.staff_notes} onClick={() => run({ staff_notes: staffNotes })}><Save size={17} />Guardar notas</button></div></div></section>}
       {!frontDesk && a.staff_notes && <section className="panel form-panel"><h2>Notas internas</h2><p className="muted" style={{ whiteSpace: 'pre-wrap' }}>{a.staff_notes}</p></section>}

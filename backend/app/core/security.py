@@ -71,7 +71,7 @@ def require_staff(*roles: str):
     def dependency(user: CurrentUser) -> ClinicMember:
         member = user.membership if user.role == "staff" else None
         if not member or (roles and member.role not in roles):
-            raise HTTPException(403, "No tienes permisos para esta acción en la clínica.")
+            raise HTTPException(403, "No tienes permisos para esta acción en la veterinaria.")
         return member
     return dependency
 

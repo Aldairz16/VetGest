@@ -16,7 +16,7 @@ export function HistoryView({ history, petName }: { history: Query; petName: str
         <h3>{r.reason}</h3><p><strong>Diagnóstico:</strong> {r.diagnosis}</p>
         {r.indications && <p><strong>Indicaciones:</strong> {r.indications}</p>}
         {(r.weight || r.next_visit_on) && <p className="meta">{r.weight ? `Peso: ${r.weight} kg` : ''}{r.weight && r.next_visit_on ? ' · ' : ''}{r.next_visit_on ? `Próximo control: ${longDate(r.next_visit_on)}` : ''}</p>}
-      </article>)}</div> : <EmptyState title="Sin atenciones registradas">Cuando una clínica atienda a {petName}, verás aquí el diagnóstico y las indicaciones.</EmptyState>}
+      </article>)}</div> : <EmptyState title="Sin atenciones registradas">Cuando una veterinaria atienda a {petName}, verás aquí el diagnóstico y las indicaciones.</EmptyState>}
     </section>
     <section className="panel"><div className="section-heading"><h2>Vacunas y tratamientos</h2><span className="muted">{care.length}</span></div>
       {care.length ? <div className="reminder-list">{care.map(c => <div className="reminder-row" key={c.id}>

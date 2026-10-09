@@ -8,6 +8,7 @@ import { useMe } from '../lib/queries'
 import { areaOf, can, homeFor, type Area } from '../lib/roles'
 import type { User } from '../lib/types'
 import { ForcedPasswordChange } from '../pages/Account'
+import { A11yMenu } from './A11yMenu'
 import { Brand, ErrorState, Loading } from './ui'
 
 interface NavItem { to: string; label: string; Icon: LucideIcon; end?: boolean }
@@ -22,7 +23,7 @@ function linksFor(user: User): NavItem[] {
   ]
   if (area === 'admin') return [
     { to: '/admin', label: 'Resumen', Icon: LayoutDashboard, end: true },
-    { to: '/admin/clinicas', label: 'Clínicas', Icon: Building2 },
+    { to: '/admin/clinicas', label: 'Veterinarias', Icon: Building2 },
     { to: '/admin/perfil', label: 'Mi perfil', Icon: UserRound },
   ]
   return [
@@ -32,12 +33,12 @@ function linksFor(user: User): NavItem[] {
     ...(can(user, 'admin') ? [
       { to: '/clinica/equipo', label: 'Equipo', Icon: Users },
       { to: '/clinica/servicios', label: 'Servicios', Icon: Tags },
-      { to: '/clinica/datos', label: 'Datos de la clínica', Icon: Settings },
+      { to: '/clinica/datos', label: 'Datos de la veterinaria', Icon: Settings },
     ] : []),
     { to: '/clinica/perfil', label: 'Mi perfil', Icon: UserRound },
   ]
 }
-const captions: Record<Area, string> = { owner: 'ESPACIO DEL PROPIETARIO', clinic: 'ESPACIO DE LA CLÍNICA', admin: 'ADMINISTRACIÓN VETGEST' }
+const captions: Record<Area, string> = { owner: 'ESPACIO DEL PROPIETARIO', clinic: 'ESPACIO DE LA VETERINARIA', admin: 'ADMINISTRACIÓN VETGEST' }
 
 export function Layout({ area }: { area: Area }) {
   const me = useMe()
@@ -73,7 +74,7 @@ export function Layout({ area }: { area: Area }) {
       <div className="sidebar-bottom"><div className="sidebar-note"><Heart size={21} /><p>Una vida juntos.<br /><strong>Un cuidado a la vez.</strong></p></div><button className="logout" onClick={() => void logout()} disabled={loggingOut}><LogOut size={19} />{loggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}</button></div>
     </aside>
     {menu && <button className="menu-overlay" aria-label="Cerrar menú" onClick={() => setMenu(false)} />}
-    <div className="app-body"><header className="topbar"><div className="topbar-left"><button className="icon-button mobile-only" aria-label="Abrir menú" aria-expanded={menu} onClick={() => setMenu(true)}><Menu /></button><span className="breadcrumb">{area === 'owner' ? 'Mi espacio' : area === 'clinic' ? 'Clínica' : 'VetGest'} <ChevronRight size={14} /><strong>{[...links].reverse().find(l => location.pathname.startsWith(l.to))?.label}</strong></span></div><NavLink to={`${homeFor(user)}/perfil`} className="account"><span className="account-name">{user.profile.first_name}<small>{role}</small></span><span className="avatar">{user.profile.first_name[0]}{user.profile.last_name[0]}</span></NavLink></header>
+    <div className="app-body"><header className="topbar"><div className="topbar-left"><button className="icon-button mobile-only" aria-label="Abrir menú" aria-expanded={menu} onClick={() => setMenu(true)}><Menu /></button><span className="breadcrumb">{area === 'owner' ? 'Mi espacio' : area === 'clinic' ? 'Veterinaria' : 'VetGest'} <ChevronRight size={14} /><strong>{[...links].reverse().find(l => location.pathname.startsWith(l.to))?.label}</strong></span></div><div className="topbar-right"><A11yMenu /><NavLink to={`${homeFor(user)}/perfil`} className="account"><span className="account-name">{user.profile.first_name}<small>{role}</small></span><span className="avatar" aria-hidden="true">{user.profile.first_name[0]}{user.profile.last_name[0]}</span></NavLink></div></header>
       <main id="main" className="main-content" key={location.pathname}>{error && <ErrorState error={error} />}{user.must_change_password ? <ForcedPasswordChange /> : <Outlet />}</main>
       <footer className="app-footer"><span>VetGest · Siempre a su lado</span><span>Hecho para cuidar mejor.</span></footer>
     </div>
