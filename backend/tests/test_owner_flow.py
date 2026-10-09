@@ -170,4 +170,5 @@ def test_csrf_origin_rejected_and_openapi_available(client):
     schema = client.get("/api/openapi.json")
     assert schema.status_code == 200
     assert "/api/appointments/{appointment_id}/cancel" in schema.json()["paths"]
+    assert "/api/clinic/patients/{pet_id}/records" in schema.json()["paths"]
     assert client.get("/api/docs").status_code == 200

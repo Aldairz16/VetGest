@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     token_minutes: int = Field(default=60, ge=5, le=1440)
     cookie_secure: bool = False
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8080"]
+    # Optional: creates the first platform administrator on startup if the email is unused.
+    bootstrap_admin_email: str | None = None
+    bootstrap_admin_password: str | None = Field(default=None, min_length=12)
 
     @property
     def db_url(self) -> str | URL:

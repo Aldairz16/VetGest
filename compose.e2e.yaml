@@ -35,6 +35,8 @@ services:
   web:
     build:
       context: ./frontend
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org/}
       target: production
     ports:
       - "127.0.0.1:8081:80"
@@ -44,6 +46,8 @@ services:
   e2e:
     build:
       context: ./frontend
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org/}
       target: e2e
     init: true
     shm_size: 1gb

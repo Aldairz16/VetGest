@@ -1,5 +1,8 @@
 FROM node:22-alpine AS dependencies
 WORKDIR /app
+# Registro alternativo para redes con inspección TLS (p. ej. https://registry.yarnpkg.com/).
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+ENV npm_config_registry=$NPM_REGISTRY
 RUN npm install --global pnpm@10.15.1
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile

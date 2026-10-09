@@ -35,6 +35,8 @@ services:
   web:
     build:
       context: ./frontend
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org/}
       target: production
     ports:
       - "127.0.0.1:8080:80"
@@ -75,6 +77,8 @@ services:
   frontend-test:
     build:
       context: ./frontend
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org/}
       target: test
     profiles: ["test"]
 volumes:

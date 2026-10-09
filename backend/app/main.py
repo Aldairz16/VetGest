@@ -10,11 +10,11 @@ from starlette.exceptions import HTTPException
 
 from app.core.config import get_settings
 from app.core.database import engine
-from app.domains import appointments, auth, catalog, pets
+from app.domains import admin, appointments, auth, catalog, clinic, pets
 
 settings = get_settings()
 app = FastAPI(title="VetGest API", version="1.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json",
-              redoc_url=None, description="Sprint 1 · Experiencia del propietario. Inicia sesión en /auth/login para usar la cookie de sesión en Swagger.")
+              redoc_url=None, description="Propietarios, clínicas (administración, recepción y veterinarios) y administración de la plataforma. Inicia sesión en /auth/login para usar la cookie de sesión en Swagger.")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
                    allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
                    allow_headers=["Content-Type"])
@@ -63,5 +63,5 @@ def health():
     return {"status": "ok", "database": "postgresql"}
 
 
-for router in (auth.router, pets.router, catalog.router, appointments.router):
+for router in (auth.router, pets.router, catalog.router, appointments.router, clinic.router, admin.router):
     app.include_router(router, prefix="/api")

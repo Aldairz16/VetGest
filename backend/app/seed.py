@@ -1,11 +1,17 @@
-"""Idempotent demonstration catalog. Never creates owner accounts or passwords."""
+"""Idempotent demonstration catalog and optional platform-admin bootstrap.
+
+Never creates owner accounts or hard-coded passwords: the administrator comes from
+BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD and must change it on first sign-in.
+"""
 
 from decimal import Decimal
 
 from sqlalchemy import select, text
 
+from app.core.config import get_settings
 from app.core.database import SessionLocal
-from app.models import VeterinaryClinic, VeterinaryService
+from app.core.security import password_hash
+from app.models import Profile, User, VeterinaryClinic, VeterinaryService
 
 CLINICS = [
     ("VetGest Miraflores", "Av. de la Salud 245, Miraflores, Lima", "01 555 0101",
@@ -42,6 +48,23 @@ def seed():
                                              description=detail, duration_minutes=minutes,
                                              price=Decimal(price)))
     print("Catálogo de demostración disponible: 3 veterinarias y 12 servicios.")
+    bootstrap_admin()
+
+
+def bootstrap_admin():
+    settings = get_settings()
+    if not settings.bootstrap_admin_email or not settings.bootstrap_admin_password:
+        return
+    email = settings.bootstrap_admin_email.strip().lower()
+    with SessionLocal.begin() as db:
+        db.execute(text("SELECT pg_advisory_xact_lock(71002)"))
+        if db.scalar(select(User.id).where(User.email == email)):
+            return
+        user = User(email=email, password_hash=password_hash.hash(settings.bootstrap_admin_password),
+                    role="platform_admin", must_change_password=True)
+        user.profile = Profile(first_name="Administración", last_name="VetGest", phone="000000000")
+        db.add(user)
+    print("Administrador de plataforma creado; debe cambiar su contraseña al ingresar.")
 
 
 if __name__ == "__main__":
