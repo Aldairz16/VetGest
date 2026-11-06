@@ -12,7 +12,7 @@ function mockApi(user: unknown, extra: Record<string, unknown> = {}) {
     const path = String(input).split('?')[0]
     const routes: Record<string, unknown> = {
       '/api/auth/me': user, '/api/clinic/summary': { today: {}, pending_requests: 2, my_today: 0 },
-      '/api/clinic/appointments': [], ...extra,
+      '/api/clinic/appointments': [], '/api/clinic/payments/pending': [], ...extra,
     }
     if (!(path in routes)) throw new Error(`Unexpected request: ${path}`)
     return new Response(JSON.stringify(routes[path]), { status: 200, headers: { 'Content-Type': 'application/json' } })

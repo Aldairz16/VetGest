@@ -1,5 +1,23 @@
 # Registro de implementación y verificación
 
+## 5 de noviembre de 2026 · Despliegue y app (rama `feature/despliegue-y-app`)
+
+Entorno: macOS (Apple M2), Docker 29.8.2. Base y API en un stack aislado (`vetgest-verify`) con migraciones desde cero.
+
+| Comprobación | Resultado |
+|---|---|
+| Backend en Docker | **42 pytest** (35 anteriores + 7 nuevas: token Bearer, turnos y capacidad, cruce de veterinario, sala de espera, cobros e ingresos, inventario) + Ruff OK |
+| Migración `0003` | `alembic check` sin diferencias; `downgrade 0002 → upgrade 0003` OK |
+| Web | **51 Vitest** + ESLint + TypeScript + build OK, también en Docker con pnpm 10 |
+| App Expo (SDK 58) | `tsc` OK, **27 pruebas jest**, `expo-doctor` 20/20, `expo export --platform web` OK |
+| Navegador, web contra la API real | Propietaria pide turno (4 pasos, primer turno libre) → recepción confirma con veterinario y registra llegada → veterinario inicia consulta y registra la vacuna con producto del inventario (12 → 11 dosis) → caja cobra S/ 55 con Yape → ingresos muestra S/ 55 y ticket promedio |
+| Navegador, app (Expo web) contra la API real | Ingreso con token Bearer; Inicio muestra el turno confirmado con la línea de estados; Citas muestra la atención «Pagado S/ 55.00 · Yape». Modo claro y oscuro |
+| Bugs encontrados y corregidos | Pruebas antiguas fallaban de noche (fecha UTC del contenedor); el botón «Continuar» del paso 3 enviaba el turno sin pasar por el resumen; montos partidos en los indicadores; avatar cortado en celular |
+
+**Pendiente:** despliegue en Supabase, Render y Vercel sin ejecutar; app no probada en un teléfono real (Expo Go) ni en el simulador iOS; Playwright E2E actualizado pero no ejecutado.
+
+---
+
 ## 9 de octubre de 2026 · Roles multi-clínica (rama `feature/roles-multiclinica`)
 
 Entorno: macOS (Apple M2), Docker 29.8.2, Compose 5.5.1. Red con inspección TLS (Fortinet) que bloquea `registry.npmjs.org`; se instaló desde `registry.yarnpkg.com` con `NPM_REGISTRY`, que valida contra el mismo lockfile.

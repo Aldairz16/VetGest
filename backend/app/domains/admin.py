@@ -45,7 +45,7 @@ def list_clinics(admin: PlatformAdmin, db: Db):
 @router.post("/clinics", response_model=AdminClinicOut, status_code=201)
 def create_clinic(data: ClinicCreate, admin: PlatformAdmin, db: Db):
     """Creates the clinic together with its first administrator (temporary password)."""
-    clinic = VeterinaryClinic(**data.model_dump(exclude={"admin"}))
+    clinic = VeterinaryClinic(**{k: v for k, v in data.columns().items() if k != "admin"})
     owner = data.admin
     user = User(email=str(owner.email).lower(), password_hash=password_hash.hash(owner.temporary_password),
                 role="staff", must_change_password=True)

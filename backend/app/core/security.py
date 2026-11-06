@@ -3,7 +3,7 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException
-from fastapi.security import APIKeyCookie
+from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 from pwdlib import PasswordHash
 from sqlalchemy.orm import Session
 
@@ -14,21 +14,26 @@ from app.models import ClinicMember, User
 password_hash = PasswordHash.recommended()
 dummy_hash = password_hash.hash("dummy-password-never-used-to-log-in")
 cookie_scheme = APIKeyCookie(name="vetgest_session", auto_error=False)
+# The mobile app cannot rely on browser cookies: it sends the same JWT as a Bearer header.
+bearer_scheme = HTTPBearer(auto_error=False, description="Token de `POST /api/auth/token` (app móvil).")
 Db = Annotated[Session, Depends(get_db)]
 
 
-def create_token(user: User) -> str:
+def create_token(user: User, lifetime: timedelta | None = None) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
     return jwt.encode({
         "sub": str(user.id), "ver": user.token_version, "iat": now,
-        "exp": now + timedelta(minutes=settings.token_minutes),
+        "exp": now + (lifetime or timedelta(minutes=settings.token_minutes)),
         "iss": "vetgest", "aud": "vetgest",
     }, settings.jwt_secret, algorithm="HS256")
 
 
-def get_current_user(db: Db, token: Annotated[str | None, Depends(cookie_scheme)]) -> User:
+def get_current_user(db: Db, cookie: Annotated[str | None, Depends(cookie_scheme)],
+                     bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]) -> User:
     unauthorized = HTTPException(401, "Inicia sesión para continuar.")
+    # The header wins when both are present: it is explicit and cannot be sent cross-site.
+    token = bearer.credentials if bearer else cookie
     if not token:
         raise unauthorized
     try:

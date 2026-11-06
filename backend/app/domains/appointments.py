@@ -1,12 +1,13 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from app.core.security import Db, Owner
+from app.core.security import CurrentUser, Db, Owner
 from app.domains.pets import owned_pet
+from app.domains.scheduling import check_slot, day_slots, lock_agenda
 from app.models import (
     Appointment,
     CareEvent,
@@ -16,7 +17,7 @@ from app.models import (
     VeterinaryClinic,
     VeterinaryService,
 )
-from app.schemas import AppointmentInput, AppointmentOut, Reminder
+from app.schemas import AppointmentInput, AppointmentOut, AvailabilityOut, Reminder
 
 router = APIRouter(tags=["Citas"])
 REMINDER_DAYS = 30
@@ -24,7 +25,8 @@ REMINDER_DAYS = 30
 
 def appointment_options():
     return (selectinload(Appointment.pet), selectinload(Appointment.clinic), selectinload(Appointment.service),
-            selectinload(Appointment.vet).selectinload(User.profile), selectinload(Appointment.record))
+            selectinload(Appointment.vet).selectinload(User.profile), selectinload(Appointment.record),
+            selectinload(Appointment.payments))
 
 
 def appointment_query(owner_id: int):
@@ -55,10 +57,25 @@ def create_appointment(data: AppointmentInput, user: Owner, db: Db):
         raise HTTPException(422, "Este servicio o veterinaria no está disponible actualmente.")
     if data.starts_at <= datetime.now(UTC):
         raise HTTPException(422, "Elige una fecha y hora futuras.")
+    lock_agenda(db, clinic.id)
+    check_slot(db, clinic, service, data.starts_at)
     appointment = Appointment(owner_id=user.profile.id, **data.model_dump())
     db.add(appointment)
     db.commit()
     return owned_appointment(db, user.profile.id, appointment.id)
+
+
+@router.get("/clinics/{clinic_id}/availability", response_model=AvailabilityOut, tags=["Veterinarias y servicios"])
+def availability(clinic_id: int, user: CurrentUser, db: Db, service_id: int = Query(gt=0),
+                 day: date = Query(alias="date")):
+    """Bookable 30-minute slots of a day for a service (Lima time)."""
+    clinic = db.get(VeterinaryClinic, clinic_id)
+    service = db.get(VeterinaryService, service_id)
+    if not clinic or not clinic.is_active:
+        raise HTTPException(404, "No encontramos esa veterinaria.")
+    if not service or service.clinic_id != clinic.id or not service.is_active:
+        raise HTTPException(422, "El servicio no pertenece a la veterinaria seleccionada.")
+    return {"date": day, "slots": day_slots(db, clinic, service, day)}
 
 
 @router.get("/appointments/{appointment_id}", response_model=AppointmentOut)
@@ -71,6 +88,8 @@ def cancel_appointment(appointment_id: int, user: Owner, db: Db):
     appointment = owned_appointment(db, user.profile.id, appointment_id, lock=True)
     if appointment.status not in ("Pendiente", "Confirmada"):
         raise HTTPException(409, f"Esta cita ya no se puede cancelar: está {appointment.status.lower()}.")
+    if appointment.arrived_at:
+        raise HTTPException(409, "Ya estás en la veterinaria: pide a recepción que cancele la cita.")
     appointment.status = "Cancelada"
     db.commit()
     return appointment

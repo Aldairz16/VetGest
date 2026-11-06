@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, HTTPException, Response
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -12,7 +14,7 @@ from app.core.security import (
     password_hash,
 )
 from app.models import Profile, User
-from app.schemas import LoginInput, PasswordInput, ProfileInput, RegisterInput, UserOut
+from app.schemas import LoginInput, PasswordInput, ProfileInput, RegisterInput, TokenOut, UserOut
 
 router = APIRouter(prefix="/auth", tags=["Cuenta"])
 
@@ -31,19 +33,35 @@ def register(data: RegisterInput, db: Db):
     return user
 
 
-@router.post("/login", response_model=UserOut)
-def login(data: LoginInput, response: Response, db: Db):
+def authenticate(db, data: LoginInput) -> User:
     user = db.scalar(select(User).where(User.email == str(data.email).lower()))
     valid = password_hash.verify(data.password, user.password_hash if user else dummy_hash)
     if not user or not valid:
         raise HTTPException(401, "El correo o la contraseña son incorrectos.")
     if not can_sign_in(user):
         raise HTTPException(403, "Tu cuenta o tu veterinaria está desactivada. Contacta a su administrador.")
+    return user
+
+
+@router.post("/login", response_model=UserOut)
+def login(data: LoginInput, response: Response, db: Db):
+    user = authenticate(db, data)
     settings = get_settings()
     response.set_cookie("vetgest_session", create_token(user), httponly=True,
                         secure=settings.cookie_secure, samesite="lax", path="/api",
                         max_age=settings.token_minutes * 60)
     return user
+
+
+@router.post("/token", response_model=TokenOut)
+def mobile_token(data: LoginInput, db: Db):
+    """Sign-in for the owner mobile app: returns a Bearer token instead of setting a cookie."""
+    user = authenticate(db, data)
+    if user.role != "owner":
+        raise HTTPException(403, "La app es para propietarios. El personal entra desde la web.")
+    lifetime = timedelta(days=get_settings().mobile_token_days)
+    return {"access_token": create_token(user, lifetime), "token_type": "bearer",
+            "expires_in": int(lifetime.total_seconds()), "user": user}
 
 
 @router.get("/me", response_model=UserOut)

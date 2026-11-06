@@ -1,11 +1,12 @@
-# Blueprint de Render: API (Docker) + web estática. La base de datos vive en Supabase.
+# Blueprint de Render: solo la API (Docker). La web se publica en Vercel (frontend/vercel.json)
+# y la base de datos vive en Supabase.
 # Los valores con sync: false se completan en el panel de Render; nunca se versionan.
 services:
   - type: web
     name: vetgest-api
     runtime: docker
     plan: free
-    region: oregon
+    region: ohio # cerca del proyecto Supabase «Veterinaria» (us-east-2)
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /api/health
@@ -19,7 +20,9 @@ services:
       - key: COOKIE_SECURE
         value: "true"
       - key: CORS_ORIGINS
-        sync: false # p. ej. ["https://vetgest-web.onrender.com"]
+        sync: false # dominio exacto de la web en Vercel, p. ej. ["https://vetgest.vercel.app"]
+      - key: MOBILE_TOKEN_DAYS
+        value: "30" # duración del token de la app móvil
       - key: SEED_DEMO_CATALOG
         value: "false"
       - key: BOOTSTRAP_ADMIN_EMAIL
@@ -27,37 +30,3 @@ services:
       - key: BOOTSTRAP_ADMIN_PASSWORD
         sync: false
 
-  - type: web
-    name: vetgest-web
-    runtime: static
-    rootDir: frontend
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-    staticPublishPath: dist
-    envVars:
-      - key: NODE_VERSION
-        value: "22.12.0"
-    routes:
-      # Mismo origen para la cookie de sesión: /api se reenvía a la API.
-      # Ajusta el dominio si Render asigna otro nombre a vetgest-api.
-      - type: rewrite
-        source: /api/*
-        destination: https://vetgest-api.onrender.com/api/*
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://images.unsplash.com data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable

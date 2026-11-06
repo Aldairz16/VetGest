@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
@@ -84,6 +84,13 @@ class UserOut(Output):
         return value
 
 
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"]
+    expires_in: int
+    user: UserOut
+
+
 class PetInput(Input):
     name: Name
     species: Literal["Perro", "Gato", "Ave", "Conejo", "Otro"]
@@ -110,6 +117,9 @@ class PetOut(PetInput, Output):
     updated_at: datetime
 
 
+Weekday = Annotated[int, Field(ge=1, le=7)]
+
+
 class ClinicOut(Output):
     id: int
     name: str
@@ -117,6 +127,19 @@ class ClinicOut(Output):
     phone: str
     opening_hours: str
     description: str
+    opens_at: time
+    closes_at: time
+    open_days: list[int]
+
+    @field_validator("open_days", mode="before")
+    @classmethod
+    def split_days(cls, value):
+        return [int(d) for d in value] if isinstance(value, str) else value
+
+    @field_validator("opens_at", "closes_at", mode="after")
+    @classmethod
+    def minutes_only(cls, value: time):
+        return value.replace(second=0, microsecond=0)
 
 
 class ServiceOut(Output):
@@ -135,6 +158,21 @@ class ClinicInput(Input):
     phone: Phone
     opening_hours: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=150)]
     description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=10, max_length=2000)]
+    opens_at: time = time(9)
+    closes_at: time = time(18)
+    open_days: list[Weekday] = Field(default_factory=lambda: [1, 2, 3, 4, 5, 6], min_length=1, max_length=7)
+
+    @model_validator(mode="after")
+    def coherent_hours(self):
+        if self.closes_at <= self.opens_at:
+            raise ValueError("La hora de cierre debe ser posterior a la de apertura.")
+        self.open_days = sorted(set(self.open_days))
+        return self
+
+    def columns(self) -> dict:
+        data = self.model_dump()
+        data["open_days"] = "".join(str(d) for d in self.open_days)
+        return data
 
 
 class ServiceInput(Input):
@@ -205,6 +243,16 @@ class AppointmentInput(Input):
 
 
 AppointmentStatus = Literal["Pendiente", "Confirmada", "Atendida", "Cancelada", "No asistió"]
+AppointmentStage = Literal["Por confirmar", "Confirmada", "En sala de espera", "En consulta", "Atendida",
+                           "Cancelada", "No asistió"]
+PaymentMethod = Literal["Efectivo", "Yape", "Tarjeta"]
+
+
+class PaymentSummary(Output):
+    id: int
+    amount: float
+    method: PaymentMethod
+    paid_at: datetime
 
 
 class AppointmentOut(Output):
@@ -217,6 +265,10 @@ class AppointmentOut(Output):
     status: AppointmentStatus
     vet: StaffName | None = None
     has_record: bool = False
+    arrived_at: datetime | None = None
+    started_at: datetime | None = None
+    stage: AppointmentStage
+    payment: PaymentSummary | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -247,6 +299,8 @@ class CareInput(Input):
     applied_on: date
     next_due_on: date | None = None
     notes: str = Field(default="", max_length=2000)
+    # Optional stock item used in this care event (one unit is discounted).
+    inventory_item_id: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def coherent_dates(self):
@@ -315,3 +369,124 @@ class Reminder(BaseModel):
     due: date
     overdue: bool
     clinic_name: str
+
+
+class Slot(BaseModel):
+    starts_at: datetime
+    available: bool
+
+
+class AvailabilityOut(BaseModel):
+    date: date
+    slots: list[Slot]
+
+
+class PaymentInput(Input):
+    appointment_id: int = Field(gt=0)
+    amount: float = Field(ge=0, le=100000, multiple_of=0.01, allow_inf_nan=False)
+    method: PaymentMethod
+    notes: str = Field(default="", max_length=500)
+
+
+class VoidInput(Input):
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=500)]
+
+
+class PaymentOut(Output):
+    id: int
+    appointment_id: int
+    amount: float
+    method: PaymentMethod
+    notes: str
+    paid_at: datetime
+    received_by: StaffName
+    pet_name: str
+    owner_name: str
+    service_name: str
+    voided_at: datetime | None
+    void_reason: str | None
+
+    @model_validator(mode="before")
+    @classmethod
+    def flatten(cls, value):
+        if isinstance(value, dict):
+            return value
+        a = value.appointment
+        return {**{k: getattr(value, k) for k in ("id", "appointment_id", "amount", "method", "notes", "paid_at",
+                                                  "received_by", "voided_at", "void_reason")},
+                "pet_name": a.pet.name, "service_name": a.service.name,
+                "owner_name": f"{a.owner.first_name} {a.owner.last_name}"}
+
+
+class MoneyByKey(BaseModel):
+    key: str
+    total: float
+    count: int
+
+
+class IncomeReport(BaseModel):
+    date_from: date
+    date_to: date
+    total: float
+    count: int
+    by_method: dict[str, float]
+    by_day: list[MoneyByKey]
+    by_service: list[MoneyByKey]
+    pending: MoneyByKey
+    average_ticket: float
+    # Appointments scheduled in the period, by status (no-show rate = "No asistió" / total).
+    appointments: dict[str, int]
+
+
+InventoryCategory = Literal["Vacuna", "Antiparasitario", "Medicamento", "Insumo"]
+ItemName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
+Unit = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
+
+
+class InventoryUpdate(Input):
+    name: ItemName
+    category: InventoryCategory
+    unit: Unit
+    min_stock: int = Field(ge=0, le=100000)
+    is_active: bool = True
+
+
+class InventoryCreate(Input):
+    name: ItemName
+    category: InventoryCategory
+    unit: Unit
+    min_stock: int = Field(default=0, ge=0, le=100000)
+    initial_stock: int = Field(default=0, ge=0, le=100000)
+
+
+class InventoryItemOut(Output):
+    id: int
+    name: str
+    category: InventoryCategory
+    unit: str
+    stock: int
+    min_stock: int
+    is_active: bool
+    low_stock: bool
+
+
+class MovementInput(Input):
+    kind: Literal["Ingreso", "Ajuste"]
+    quantity: int = Field(ge=-100000, le=100000)
+    notes: str = Field(default="", max_length=500)
+
+    @model_validator(mode="after")
+    def valid_quantity(self):
+        if self.quantity == 0 or (self.kind == "Ingreso" and self.quantity < 0):
+            raise ValueError("Un ingreso debe ser positivo y un ajuste distinto de cero.")
+        return self
+
+
+class MovementOut(Output):
+    id: int
+    kind: str
+    quantity: int
+    notes: str
+    created_at: datetime
+    user: StaffName
+    care_event_id: int | None

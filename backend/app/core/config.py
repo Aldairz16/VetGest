@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     database_url: str | None = None
     jwt_secret: str = Field(min_length=32)
     token_minutes: int = Field(default=60, ge=5, le=1440)
+    # Bearer tokens for the owner mobile app; revoked by logout or a password change.
+    mobile_token_days: int = Field(default=30, ge=1, le=90)
     cookie_secure: bool = False
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8080"]
     # Optional: creates the first platform administrator on startup if the email is unused.

@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.core.security import password_hash
 from app.main import app
 from app.models import ClinicMember, Profile, User
-from tests.test_owner_flow import PASSWORD, authenticated, make_appointment
+from tests.test_owner_flow import PASSWORD, authenticated, lima_today, make_appointment, slot
 
 STAFF_PASSWORD = "Staff-password-123"
 
@@ -79,7 +79,7 @@ def test_front_desk_workflow_and_clinic_isolation(team, booked):
         result = recep.patch(f"/api/clinic/appointments/{appointment_id}", json={"status": "Confirmada", "vet_id": team["vet_id"]})
         assert result.status_code == 200
         assert result.json()["status"] == "Confirmada" and result.json()["vet"]["id"] == team["vet_id"]
-        new_time = (datetime.now(UTC) + timedelta(days=5)).isoformat()
+        new_time = slot(5)
         assert recep.patch(f"/api/clinic/appointments/{appointment_id}", json={"starts_at": new_time}).status_code == 200
         # A vet from another clinic cannot be assigned.
         other_vet = recep.get("/api/clinic/staff").json()
@@ -92,19 +92,19 @@ def test_front_desk_workflow_and_clinic_isolation(team, booked):
 
 def test_vet_records_attention_and_owner_sees_history_and_reminders(client, team, booked):
     pet_id = booked["pet"]["id"]
-    due = (date.today() + timedelta(days=10)).isoformat()
+    due = (lima_today() + timedelta(days=10)).isoformat()
     with signed_in("vet@a.pe") as vet:
         assert [p["id"] for p in vet.get("/api/clinic/patients", params={"search": "lun"}).json()] == [pet_id]
         record = vet.post(f"/api/clinic/patients/{pet_id}/records", json={
             "appointment_id": booked["id"], "reason": "Control anual", "diagnosis": "Paciente sano",
             "weight": 4.7, "next_visit_on": None,
-            "care": [{"kind": "Vacuna", "name": "Triple felina", "applied_on": date.today().isoformat(), "next_due_on": due}],
+            "care": [{"kind": "Vacuna", "name": "Triple felina", "applied_on": lima_today().isoformat(), "next_due_on": due}],
         })
         assert record.status_code == 201, record.text
         assert record.json()["vet"]["profile"]["first_name"] == "Vet"
         again = vet.post(f"/api/clinic/patients/{pet_id}/records", json={"appointment_id": booked["id"], "reason": "x" * 3, "diagnosis": "y" * 3})
         assert again.status_code == 409
-        bad = {"kind": "Vacuna", "name": "Rabia", "applied_on": date.today().isoformat(), "next_due_on": "2000-01-01"}
+        bad = {"kind": "Vacuna", "name": "Rabia", "applied_on": lima_today().isoformat(), "next_due_on": "2000-01-01"}
         assert vet.post(f"/api/clinic/patients/{pet_id}/care", json=bad).status_code == 422
     appointment = client.get(f"/api/appointments/{booked['id']}").json()
     assert appointment["status"] == "Atendida" and appointment["has_record"] is True
@@ -121,12 +121,12 @@ def test_vet_records_attention_and_owner_sees_history_and_reminders(client, team
 
 def test_newer_dose_supersedes_reminder(client, team, booked):
     pet_id = booked["pet"]["id"]
-    old = {"kind": "Desparasitación", "name": "Interna", "applied_on": (date.today() - timedelta(days=120)).isoformat(),
-           "next_due_on": (date.today() - timedelta(days=30)).isoformat()}
+    old = {"kind": "Desparasitación", "name": "Interna", "applied_on": (lima_today() - timedelta(days=120)).isoformat(),
+           "next_due_on": (lima_today() - timedelta(days=30)).isoformat()}
     with signed_in("vet@a.pe") as vet:
         assert vet.post(f"/api/clinic/patients/{pet_id}/care", json=old).status_code == 201
         assert any(r["overdue"] for r in client.get("/api/reminders").json())
-        new = old | {"applied_on": date.today().isoformat(), "next_due_on": (date.today() + timedelta(days=90)).isoformat()}
+        new = old | {"applied_on": lima_today().isoformat(), "next_due_on": (lima_today() + timedelta(days=90)).isoformat()}
         assert vet.post(f"/api/clinic/patients/{pet_id}/care", json=new).status_code == 201
     assert not [r for r in client.get("/api/reminders").json() if r["kind"] == "Desparasitación"]
 

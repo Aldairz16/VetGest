@@ -4,6 +4,7 @@ Never creates owner accounts or hard-coded passwords: the administrator comes fr
 BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD and must change it on first sign-in.
 """
 
+from datetime import time
 from decimal import Decimal
 
 from sqlalchemy import select, text
@@ -11,7 +12,7 @@ from sqlalchemy import select, text
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.security import password_hash
-from app.models import Profile, User, VeterinaryClinic, VeterinaryService
+from app.models import InventoryItem, Profile, User, VeterinaryClinic, VeterinaryService
 
 CLINICS = [
     ("VetGest Miraflores", "Av. de la Salud 245, Miraflores, Lima", "01 555 0101",
@@ -20,6 +21,20 @@ CLINICS = [
      "Lunes a sábado, 09:00–19:00", "Consultas preventivas, orientación nutricional y cuidados con tiempo para escuchar tus dudas."),
     ("Casa Mascota", "Av. Los Jardines 620, Surco, Lima", "01 555 0103",
      "Lunes a viernes, 08:00–18:00; sábado, 09:00–13:00", "Un espacio tranquilo para la salud de tus compañeros, con atención general y controles periódicos."),
+]
+# Structured hours for slot availability: (opens, closes, ISO weekdays).
+HOURS = {
+    "VetGest Miraflores": (time(8), time(20), "123456"),
+    "Huella Animal": (time(9), time(19), "123456"),
+    "Casa Mascota": (time(8), time(18), "12345"),
+}
+# Demo stock only; real clinics register their own products.
+INVENTORY = [
+    ("Vacuna antirrábica", "Vacuna", "dosis", 10, 12),
+    ("Vacuna séxtuple canina", "Vacuna", "dosis", 10, 15),
+    ("Vacuna triple felina", "Vacuna", "dosis", 6, 8),
+    ("Antiparasitario oral perros 10–20 kg", "Antiparasitario", "tabletas", 5, 20),
+    ("Pipeta antipulgas gatos", "Antiparasitario", "unidades", 8, 10),
 ]
 SERVICES = [
     ("Consulta general", "Evaluación física y orientación sobre el bienestar de tu mascota.", 30, "65.00"),
@@ -64,10 +79,16 @@ def seed_catalog():
         for name, address, phone, hours, description in CLINICS:
             clinic = db.scalar(select(VeterinaryClinic).where(VeterinaryClinic.name == name))
             if not clinic:
-                clinic = VeterinaryClinic(name=name, address=address, phone=phone,
-                                          opening_hours=hours, description=description)
+                opens, closes, days = HOURS[name]
+                clinic = VeterinaryClinic(name=name, address=address, phone=phone, opening_hours=hours,
+                                          description=description, opens_at=opens, closes_at=closes, open_days=days)
                 db.add(clinic)
                 db.flush()
+            if not db.scalar(select(InventoryItem.id).where(InventoryItem.clinic_id == clinic.id).limit(1)):
+                # Opening balance without a movement: movements need the staff member who made them.
+                db.add_all(InventoryItem(clinic_id=clinic.id, name=item_name, category=category, unit=unit,
+                                         min_stock=minimum, stock=stock)
+                           for item_name, category, unit, minimum, stock in INVENTORY)
             for service_name, detail, minutes, price in SERVICES:
                 exists = db.scalar(select(VeterinaryService.id).where(
                     VeterinaryService.clinic_id == clinic.id, VeterinaryService.name == service_name))
@@ -75,7 +96,7 @@ def seed_catalog():
                     db.add(VeterinaryService(clinic_id=clinic.id, name=service_name,
                                              description=detail, duration_minutes=minutes,
                                              price=Decimal(price)))
-    print("Catálogo de demostración disponible: 3 veterinarias y 12 servicios.")
+    print("Catálogo de demostración disponible: 3 veterinarias, 12 servicios e inventario inicial.")
 
 
 def bootstrap_admin():

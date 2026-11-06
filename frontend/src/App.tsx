@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from './components/Layout'
@@ -12,14 +12,28 @@ import { AppointmentDetail, AppointmentForm, AppointmentList } from './pages/App
 import { NotFound } from './pages/NotFound'
 import { Agenda, ClinicAppointmentDetail, ClinicHome } from './pages/Clinic'
 import { PatientDetail, Patients } from './pages/ClinicPatients'
-import { ClinicSettings, Services, Team } from './pages/ClinicAdmin'
 import { AdminClinics, AdminHome } from './pages/Admin'
+import { Loading } from './components/ui'
 import { useMe } from './lib/queries'
-import { can } from './lib/roles'
+import { allowed, can, type Permission } from './lib/roles'
+
+// Páginas de administración y caja: se cargan aparte para no engordar el paquete inicial.
+const adminPage = (name: 'ClinicSettings' | 'IncomeReport' | 'Inventory' | 'Services' | 'Team') => lazy(() => import('./pages/ClinicAdmin').then(m => ({ default: m[name] })))
+const ClinicSettings = adminPage('ClinicSettings')
+const IncomeReport = adminPage('IncomeReport')
+const Inventory = adminPage('Inventory')
+const Services = adminPage('Services')
+const Team = adminPage('Team')
+const Cashier = lazy(() => import('./pages/ClinicCashier').then(m => ({ default: m.Cashier })))
+const Page = ({ children }: { children: ReactNode }) => <Suspense fallback={<Loading />}>{children}</Suspense>
 
 function ClinicAdminOnly({ children }: { children: React.ReactNode }) {
   const me = useMe()
   return can(me.data, 'admin') ? children : <Navigate to="/clinica" replace />
+}
+function ClinicAllowed({ permission, children }: { permission: Permission; children: React.ReactNode }) {
+  const me = useMe()
+  return allowed(me.data, permission) ? children : <Navigate to="/clinica" replace />
 }
 
 export default function App() {
@@ -39,7 +53,8 @@ export default function App() {
   </Route><Route path="/clinica" element={<Layout area="clinic" />}>
     <Route index element={<ClinicHome />} /><Route path="agenda" element={<Agenda />} /><Route path="agenda/:id" element={<ClinicAppointmentDetail />} />
     <Route path="pacientes" element={<Patients />} /><Route path="pacientes/:id" element={<PatientDetail />} /><Route path="perfil" element={<Profile />} />
-    <Route path="equipo" element={<ClinicAdminOnly><Team /></ClinicAdminOnly>} /><Route path="servicios" element={<ClinicAdminOnly><Services /></ClinicAdminOnly>} /><Route path="datos" element={<ClinicAdminOnly><ClinicSettings /></ClinicAdminOnly>} />
+    <Route path="equipo" element={<ClinicAdminOnly><Page><Team /></Page></ClinicAdminOnly>} /><Route path="servicios" element={<ClinicAdminOnly><Page><Services /></Page></ClinicAdminOnly>} /><Route path="datos" element={<ClinicAdminOnly><Page><ClinicSettings /></Page></ClinicAdminOnly>} />
+    <Route path="caja" element={<ClinicAllowed permission="cashier"><Page><Cashier /></Page></ClinicAllowed>} /><Route path="inventario" element={<ClinicAllowed permission="inventory"><Page><Inventory /></Page></ClinicAllowed>} /><Route path="ingresos" element={<ClinicAllowed permission="income"><Page><IncomeReport /></Page></ClinicAllowed>} />
   </Route><Route path="/admin" element={<Layout area="admin" />}>
     <Route index element={<AdminHome />} /><Route path="clinicas" element={<AdminClinics />} /><Route path="perfil" element={<Profile />} />
   </Route><Route path="*" element={<NotFound />} /></Routes>

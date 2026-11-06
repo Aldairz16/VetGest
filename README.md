@@ -2,13 +2,13 @@
 
 Plataforma multi-clínica para la gestión y el cuidado de mascotas. Interfaz en español, importes en soles y citas en hora de Lima (UTC−5).
 
-- **Propietarios:** mascotas, solicitud de citas, historial clínico y recordatorios de vacunas y controles.
-- **Clínicas:** recepción (agenda), veterinarios (atenciones, vacunas, tratamientos) y administrador (equipo, servicios, datos).
+- **Propietarios (web y app móvil Expo):** mascotas, solicitud de turnos libres, estado de la cita en vivo, historial clínico y recordatorios de vacunas y controles.
+- **Clínicas:** recepción (agenda, sala de espera y caja), veterinarios (consulta, atenciones, vacunas y tratamientos con descuento de inventario) y administrador (equipo, servicios, horario, inventario e ingresos).
 - **Administración VetGest:** alta y suspensión de clínicas, métricas.
 
-Perfiles y reglas: [docs/roles.md](docs/roles.md). Despliegue en Supabase + Render: [docs/deploy.md](docs/deploy.md).
+Perfiles y reglas: [docs/roles.md](docs/roles.md). Despliegue en Supabase + Render (API) + Vercel (web): [docs/deploy.md](docs/deploy.md). App móvil: [mobile/README.md](mobile/README.md).
 
-**Estado actual:** backend (35 pruebas) y frontend (32 pruebas, ESLint, TypeScript y build) verificados con Docker; el flujo entre roles se probó en el navegador. Detalle en [el registro de verificación](docs/verification.md).
+**Estado actual (05/11/2026):** backend (42 pruebas), web (51 pruebas, ESLint, TypeScript y build) y app Expo (27 pruebas) verificados; el recorrido completo se probó en el navegador contra la API real. Falta desplegar. Detalle en [el registro de verificación](docs/verification.md).
 
 ## Ejecutar con Docker Compose
 

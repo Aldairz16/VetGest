@@ -12,10 +12,13 @@ from sqlalchemy.orm import selectinload
 from app.core.security import ClinicAdmin, Clinician, Db, FrontDesk, Staff, password_hash
 from app.domains.appointments import appointment_options
 from app.domains.history import pet_history
+from app.domains.scheduling import check_slot, day_slots, lock_agenda, today_bounds
 from app.models import (
     Appointment,
     CareEvent,
     ClinicMember,
+    InventoryItem,
+    InventoryMovement,
     MedicalRecord,
     Pet,
     Profile,
@@ -26,6 +29,7 @@ from app.models import (
 from app.schemas import (
     AdminClinicOut,
     AppointmentManage,
+    AvailabilityOut,
     CareInput,
     CareOut,
     ClinicAppointmentOut,
@@ -94,7 +98,7 @@ def my_clinic(member: Staff, db: Db):
 @router.put("", response_model=AdminClinicOut)
 def update_clinic(data: ClinicInput, member: ClinicAdmin, db: Db):
     clinic = db.get(VeterinaryClinic, member.clinic_id)
-    for key, value in data.model_dump().items():
+    for key, value in data.columns().items():
         setattr(clinic, key, value)
     try:
         db.commit()
@@ -118,7 +122,14 @@ def summary(member: Staff, db: Db):
         mine = db.scalar(select(func.count()).where(
             Appointment.vet_id == member.user_id, Appointment.status == "Confirmada",
             Appointment.starts_at >= start, Appointment.starts_at < start + timedelta(days=1)))
-    return {"today": dict(rows), "pending_requests": pending, "my_today": mine}
+    start, end = today_bounds()
+    today_confirmed = select(func.count()).where(
+        Appointment.clinic_id == member.clinic_id, Appointment.status == "Confirmada",
+        Appointment.starts_at >= start, Appointment.starts_at < end)
+    waiting = db.scalar(today_confirmed.where(Appointment.arrived_at.is_not(None), Appointment.started_at.is_(None)))
+    in_consult = db.scalar(today_confirmed.where(Appointment.started_at.is_not(None)))
+    return {"today": dict(rows), "pending_requests": pending, "my_today": mine,
+            "waiting": waiting, "in_consult": in_consult}
 
 
 # ---- Agenda ---------------------------------------------------------------------------------
@@ -153,13 +164,20 @@ def manage_appointment(appointment_id: int, data: AppointmentManage, member: Fro
     editable = appointment.status in TRANSITIONS
     if ("vet_id" in changes or "starts_at" in changes) and not editable:
         raise HTTPException(409, f"La cita está {appointment.status.lower()} y ya no se puede modificar.")
+    if appointment.arrived_at and changes.get("starts_at") is not None:
+        raise HTTPException(409, "El paciente ya llegó: no se puede reprogramar.")
     if changes.get("vet_id") is not None:
         appointment.vet_id = clinic_vet(db, member, changes["vet_id"]).user_id
     elif "vet_id" in changes:
         appointment.vet_id = None
-    if changes.get("starts_at") is not None:
-        if data.starts_at <= datetime.now(UTC):
-            raise HTTPException(422, "Elige una fecha y hora futuras.")
+    new_time = changes.get("starts_at") is not None and data.starts_at != appointment.starts_at
+    if new_time and data.starts_at <= datetime.now(UTC):
+        raise HTTPException(422, "Elige una fecha y hora futuras.")
+    if new_time or changes.get("vet_id") is not None:
+        lock_agenda(db, member.clinic_id)
+        check_slot(db, appointment.clinic, appointment.service, data.starts_at if new_time else appointment.starts_at,
+                   vet_id=appointment.vet_id, exclude_id=appointment.id, new_time=new_time)
+    if new_time:
         appointment.starts_at = data.starts_at
     if changes.get("staff_notes") is not None:
         appointment.staff_notes = data.staff_notes
@@ -168,9 +186,56 @@ def manage_appointment(appointment_id: int, data: AppointmentManage, member: Fro
             raise HTTPException(409, f"No se puede pasar de {appointment.status} a {data.status}.")
         if data.status == "No asistió" and appointment.starts_at > datetime.now(UTC):
             raise HTTPException(409, "Solo puedes marcar inasistencia después de la hora de la cita.")
+        if data.status == "No asistió" and appointment.arrived_at:
+            raise HTTPException(409, "El paciente llegó a la veterinaria: no se puede marcar inasistencia.")
         appointment.status = data.status
     db.commit()
     db.expire(appointment)  # reload relationships such as the newly assigned vet
+    return clinic_appointment(db, member, appointment_id)
+
+
+@router.get("/availability", response_model=AvailabilityOut)
+def staff_availability(member: Staff, db: Db, service_id: int = Query(gt=0), day: date = Query(alias="date"),
+                       vet_id: int | None = Query(default=None, gt=0),
+                       exclude_appointment_id: int | None = Query(default=None, gt=0)):
+    service = db.scalar(select(VeterinaryService).where(VeterinaryService.id == service_id,
+                                                        VeterinaryService.clinic_id == member.clinic_id))
+    if not service:
+        raise HTTPException(422, "Ese servicio no es de tu veterinaria.")
+    clinic = db.get(VeterinaryClinic, member.clinic_id)
+    return {"date": day, "slots": day_slots(db, clinic, service, day, vet_id, exclude_appointment_id)}
+
+
+@router.post("/appointments/{appointment_id}/arrival", response_model=ClinicAppointmentOut)
+def register_arrival(appointment_id: int, member: FrontDesk, db: Db):
+    """Front desk marks that the patient is in the waiting room. Status stays Confirmada."""
+    appointment = clinic_appointment(db, member, appointment_id, lock=True)
+    start, end = today_bounds()
+    if appointment.status != "Confirmada":
+        raise HTTPException(409, "Solo se registra la llegada de citas confirmadas.")
+    if not start <= appointment.starts_at < end:
+        raise HTTPException(409, "Solo se registra la llegada de las citas de hoy.")
+    if appointment.arrived_at:
+        raise HTTPException(409, "La llegada de este paciente ya está registrada.")
+    appointment.arrived_at = datetime.now(UTC)
+    db.commit()
+    db.expire(appointment)
+    return clinic_appointment(db, member, appointment_id)
+
+
+@router.post("/appointments/{appointment_id}/start", response_model=ClinicAppointmentOut)
+def start_consultation(appointment_id: int, member: Clinician, db: Db):
+    """The assigned vet calls the patient in. Not a status change: Atendida still needs the record."""
+    appointment = clinic_appointment(db, member, appointment_id, lock=True)
+    if appointment.vet_id != member.user_id and member.role != "admin":
+        raise HTTPException(403, "Esta cita está asignada a otro veterinario.")
+    if appointment.status != "Confirmada" or not appointment.arrived_at:
+        raise HTTPException(409, "El paciente aún no está en sala de espera.")
+    if appointment.started_at:
+        raise HTTPException(409, "La consulta ya empezó.")
+    appointment.started_at = datetime.now(UTC)
+    db.commit()
+    db.expire(appointment)
     return clinic_appointment(db, member, appointment_id)
 
 
@@ -199,9 +264,24 @@ def get_patient_history(pet_id: int, member: Staff, db: Db):
 
 
 def add_care(db, member: ClinicMember, pet: Pet, data: CareInput, record_id: int | None = None) -> CareEvent:
+    item = None
+    if data.inventory_item_id:
+        item = db.scalar(select(InventoryItem).where(InventoryItem.id == data.inventory_item_id,
+                                                     InventoryItem.clinic_id == member.clinic_id,
+                                                     InventoryItem.is_active.is_(True)).with_for_update())
+        if not item:
+            raise HTTPException(422, "Ese producto no está en el inventario activo de tu veterinaria.")
+        if item.stock < 1:
+            raise HTTPException(409, f"No queda stock de {item.name}. Registra un ingreso antes de usarlo.")
     event = CareEvent(pet_id=pet.id, clinic_id=member.clinic_id, vet_id=member.user_id, record_id=record_id,
                       **data.model_dump())
     db.add(event)
+    if item:
+        db.flush()
+        item.stock -= 1
+        db.add(InventoryMovement(item_id=item.id, clinic_id=member.clinic_id, kind="Uso en atención", quantity=-1,
+                                 notes=f"{data.kind}: {data.name} · {pet.name}", user_id=member.user_id,
+                                 care_event_id=event.id))
     return event
 
 

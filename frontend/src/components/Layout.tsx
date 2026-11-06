@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Building2, CalendarDays, ChevronRight, ClipboardList, Heart, LayoutDashboard, LogOut, Menu, PawPrint, Settings, Stethoscope, Tags, UserRound, Users, X, type LucideIcon } from 'lucide-react'
+import { Building2, CalendarDays, ChartColumn, ChevronRight, ClipboardList, Heart, LayoutDashboard, LogOut, Menu, Package, PawPrint, Settings, Stethoscope, Tags, UserRound, Users, Wallet, X, type LucideIcon } from 'lucide-react'
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api, ApiError, json } from '../lib/api'
 import { roleLabel } from '../lib/format'
 import { useMe } from '../lib/queries'
-import { areaOf, can, homeFor, type Area } from '../lib/roles'
+import { allowed, areaOf, can, homeFor, type Area } from '../lib/roles'
 import type { User } from '../lib/types'
 import { ForcedPasswordChange } from '../pages/Account'
 import { A11yMenu } from './A11yMenu'
@@ -30,6 +30,9 @@ function linksFor(user: User): NavItem[] {
     { to: '/clinica', label: 'Hoy', Icon: LayoutDashboard, end: true },
     { to: '/clinica/agenda', label: 'Agenda', Icon: CalendarDays },
     { to: '/clinica/pacientes', label: 'Pacientes', Icon: ClipboardList },
+    ...(allowed(user, 'cashier') ? [{ to: '/clinica/caja', label: 'Caja', Icon: Wallet }] : []),
+    ...(allowed(user, 'inventory') ? [{ to: '/clinica/inventario', label: 'Inventario', Icon: Package }] : []),
+    ...(allowed(user, 'income') ? [{ to: '/clinica/ingresos', label: 'Ingresos', Icon: ChartColumn }] : []),
     ...(can(user, 'admin') ? [
       { to: '/clinica/equipo', label: 'Equipo', Icon: Users },
       { to: '/clinica/servicios', label: 'Servicios', Icon: Tags },

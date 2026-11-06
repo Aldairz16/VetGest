@@ -10,20 +10,22 @@ from starlette.exceptions import HTTPException
 
 from app.core.config import get_settings
 from app.core.database import engine
-from app.domains import admin, appointments, auth, catalog, clinic, pets
+from app.domains import admin, appointments, auth, catalog, clinic, operations, pets
 
 settings = get_settings()
 app = FastAPI(title="VetGest API", version="1.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json",
               redoc_url=None, description="Propietarios, veterinarias (administración, recepción y veterinarios) y administración de la plataforma. Inicia sesión en /auth/login para usar la cookie de sesión en Swagger.")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
                    allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-                   allow_headers=["Content-Type"])
+                   allow_headers=["Content-Type", "Authorization"])
 
 
 @app.middleware("http")
 async def security_headers_and_origin(request: Request, call_next):
     origin = request.headers.get("origin")
-    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+    # Bearer requests (mobile app) never use the cookie, so they carry no CSRF risk.
+    bearer = request.headers.get("authorization", "").lower().startswith("bearer ")
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not bearer:
         if origin and origin not in settings.cors_origins:
             return JSONResponse(status_code=403, content={"error": {"code": "forbidden_origin", "message": "Origen no permitido."}})
         if request.headers.get("sec-fetch-site") == "cross-site":
@@ -63,5 +65,5 @@ def health():
     return {"status": "ok", "database": "postgresql"}
 
 
-for router in (auth.router, pets.router, catalog.router, appointments.router, clinic.router, admin.router):
+for router in (auth.router, pets.router, catalog.router, appointments.router, clinic.router, operations.router, admin.router):
     app.include_router(router, prefix="/api")
