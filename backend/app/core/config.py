@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic import EmailStr, Field, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -53,4 +53,9 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    try:
+        return Settings()
+    except ValidationError as exc:
+        # Pydantic echoes the input values, which include secrets (JWT, DB URL, admin password).
+        problems = "; ".join(f"{'.'.join(map(str, e['loc'])) or 'config'}: {e['msg']}" for e in exc.errors())
+        raise RuntimeError(f"Configuración inválida: {problems}") from None

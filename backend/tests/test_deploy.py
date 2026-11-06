@@ -28,3 +28,18 @@ def test_database_url_normalized_for_psycopg():
     assert settings.db_url.startswith("postgresql+psycopg://")
     with pytest.raises(ValueError):
         Settings(_env_file=None, jwt_secret="x" * 32, postgres_password=None, database_url=None)
+
+
+def test_invalid_settings_never_print_secret_values(monkeypatch):
+    from app.core.config import get_settings
+    monkeypatch.setattr(Settings, "model_config", {**Settings.model_config, "env_file": None})
+    for key in ("DATABASE_URL", "POSTGRES_PASSWORD"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("JWT_SECRET", "secret-that-must-not-leak-1234567890")
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(RuntimeError) as error:
+            get_settings()
+        assert "DATABASE_URL" in str(error.value) and "must-not-leak" not in str(error.value)
+    finally:
+        get_settings.cache_clear()
