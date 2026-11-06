@@ -25,7 +25,7 @@ export function AdminHome() {
       <article className="stat-card"><span className="stat-icon amber"><PawPrint /></span><div><span>Mascotas registradas</span><strong>{s.pets}</strong></div></article>
     </div>
     <section className="panel"><div className="section-heading"><h2 className="heading-icon"><CalendarDays size={18} />Citas de los últimos 30 días</h2><span className="muted">{total} solicitudes</span></div>
-      <div className="table-wrap"><table className="data-table"><tbody>{(['Pendiente', 'Confirmada', 'Atendida', 'Cancelada', 'No asistió'] as const).map(k => <tr key={k}><td><Badge status={k} /></td><td>{s.appointments_30d[k] ?? 0}</td></tr>)}
+      <div className="table-wrap" tabIndex={0} role="region" aria-label="Citas por estado"><table className="data-table"><tbody>{(['Pendiente', 'Confirmada', 'Atendida', 'Cancelada', 'No asistió'] as const).map(k => <tr key={k}><td><Badge status={k} /></td><td>{s.appointments_30d[k] ?? 0}</td></tr>)}
         <tr><td><strong>Tasa de inasistencia</strong></td><td>{attended + noShow ? `${Math.round(noShow / (attended + noShow) * 100)} %` : '—'}</td></tr></tbody></table></div></section>
   </>
 }
@@ -66,7 +66,7 @@ export function AdminClinics() {
     {notice && <Notice>{notice}</Notice>}
     {adding && <ClinicForm onDone={name => { setAdding(false); setNotice(`${name} se creó con su administrador.`) }} />}
     {clinics.isPending ? <Loading /> : clinics.isError ? <ErrorState error={clinics.error} retry={() => void clinics.refetch()} /> : !clinics.data.length ? <div className="panel"><EmptyState title="Sin veterinarias">Registra la primera veterinaria aliada.</EmptyState></div>
-      : <div className="panel table-wrap"><table className="data-table"><thead><tr><th>Veterinaria</th><th>Contacto</th><th>Equipo</th><th>Citas</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{clinics.data.map(c => <tr key={c.id}>
+      : <div className="panel table-wrap" tabIndex={0} role="region" aria-label="Veterinarias"><table className="data-table"><thead><tr><th>Veterinaria</th><th>Contacto</th><th>Equipo</th><th>Citas</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{clinics.data.map(c => <tr key={c.id}>
         <td><strong>{c.name}</strong><small>{c.address}</small></td><td>{c.phone}</td><td>{c.staff_count}</td><td>{c.appointment_count}</td><td><Badge status={c.is_active ? 'Activa' : 'Suspendida'} /></td>
         <td className="actions"><button className="text-link" onClick={() => { mutation.reset(); setTarget(c) }}>{c.is_active ? 'Suspender' : 'Reactivar'} <ArrowRight size={15} /></button></td></tr>)}</tbody></table></div>}
     <ConfirmDialog open={!!target} title={target?.is_active ? `¿Suspender ${target.name}?` : `¿Reactivar ${target?.name}?`} confirmLabel={target?.is_active ? 'Sí, suspender' : 'Sí, reactivar'} pending={mutation.isPending} onCancel={() => setTarget(null)} onConfirm={() => target && mutation.mutate(target)} error={mutation.error}>

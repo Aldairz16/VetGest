@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Building2, CalendarDays, ChartColumn, ChevronRight, ClipboardList, Heart, LayoutDashboard, LogOut, Menu, Package, PawPrint, Settings, Stethoscope, Tags, UserRound, Users, Wallet, X, type LucideIcon } from 'lucide-react'
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
@@ -51,6 +51,20 @@ export function Layout({ area }: { area: Area }) {
   const client = useQueryClient()
   const navigate = useNavigate()
   const location = useLocation()
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    // Al cambiar de pantalla, el foco va al título nuevo para que el lector de pantalla lo anuncie (WCAG 2.4.3).
+    let frames = 0, id = 0
+    // Las pantallas diferidas tardan unos cuadros en mostrar su título: se reintenta hasta ~1 s.
+    const tryFocus = () => {
+      const h1 = document.querySelector<HTMLElement>('#main h1')
+      if (h1) h1.focus({ preventScroll: true })
+      else if (frames++ < 60) id = requestAnimationFrame(tryFocus)
+    }
+    id = requestAnimationFrame(tryFocus)
+    return () => cancelAnimationFrame(id)
+  }, [location.pathname])
   if (me.isPending) return <Loading label="Verificando tu sesión…" />
   if (me.isError) return <div className="standalone"><ErrorState error={me.error} retry={() => void me.refetch()} /></div>
   if (!me.data) return <Navigate to="/iniciar-sesion" state={{ from: location.pathname + location.search }} replace />
@@ -77,7 +91,7 @@ export function Layout({ area }: { area: Area }) {
       <div className="sidebar-bottom"><div className="sidebar-note"><Heart size={21} /><p>Una vida juntos.<br /><strong>Un cuidado a la vez.</strong></p></div><button className="logout" onClick={() => void logout()} disabled={loggingOut}><LogOut size={19} />{loggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}</button></div>
     </aside>
     {menu && <button className="menu-overlay" aria-label="Cerrar menú" onClick={() => setMenu(false)} />}
-    <div className="app-body"><header className="topbar"><div className="topbar-left"><button className="icon-button mobile-only" aria-label="Abrir menú" aria-expanded={menu} onClick={() => setMenu(true)}><Menu /></button><span className="breadcrumb">{area === 'owner' ? 'Mi espacio' : area === 'clinic' ? 'Veterinaria' : 'VetGest'} <ChevronRight size={14} /><strong>{[...links].reverse().find(l => location.pathname.startsWith(l.to))?.label}</strong></span></div><div className="topbar-right"><A11yMenu /><NavLink to={`${homeFor(user)}/perfil`} className="account"><span className="account-name">{user.profile.first_name}<small>{role}</small></span><span className="avatar" aria-hidden="true">{user.profile.first_name[0]}{user.profile.last_name[0]}</span></NavLink></div></header>
+    <div className="app-body"><header className="topbar"><div className="topbar-left"><button className="icon-button mobile-only" aria-label="Abrir menú" aria-expanded={menu} onClick={() => setMenu(true)}><Menu /></button><span className="breadcrumb">{area === 'owner' ? 'Mi espacio' : area === 'clinic' ? 'Veterinaria' : 'VetGest'} <ChevronRight size={14} /><strong>{[...links].reverse().find(l => location.pathname.startsWith(l.to))?.label}</strong></span></div><div className="topbar-right"><A11yMenu /><NavLink to={`${homeFor(user)}/perfil`} className="account" aria-label={`Mi perfil: ${user.profile.first_name}, ${role}`}><span className="account-name" aria-hidden="true">{user.profile.first_name}<small>{role}</small></span><span className="avatar" aria-hidden="true">{user.profile.first_name[0]}{user.profile.last_name[0]}</span></NavLink></div></header>
       <main id="main" className="main-content" key={location.pathname}>{error && <ErrorState error={error} />}{user.must_change_password ? <ForcedPasswordChange /> : <Outlet />}</main>
       <footer className="app-footer"><span>VetGest · Siempre a su lado</span><span>Hecho para cuidar mejor.</span></footer>
     </div>

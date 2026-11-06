@@ -6,7 +6,7 @@ const light = {
   scheme: 'light' as 'light' | 'dark',
   primary: '#103d41', primaryHover: '#18555a', onPrimary: '#ffffff',
   accent: '#dbf18c', onAccent: '#103d41',
-  background: '#f5f7f8', card: '#ffffff', text: '#233b40', textSecondary: '#657579', border: '#e4e9e9',
+  background: '#f5f7f8', card: '#ffffff', text: '#233b40', textSecondary: '#56676b', border: '#e4e9e9',
   danger: '#a73636', dangerSoft: '#fbeaea', success: '#24663a', successSoft: '#e2f4e6',
   soft: '#eef3f3', inputBackground: '#ffffff', overlay: 'rgba(16, 61, 65, 0.45)',
 }

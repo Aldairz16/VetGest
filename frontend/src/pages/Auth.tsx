@@ -6,6 +6,7 @@ import { ArrowRight, LockKeyhole } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { A11yMenu } from '../components/A11yMenu'
 import { Brand, ErrorState, Field, Notice, petPhoto } from '../components/ui'
+import { usePageTitle } from '../lib/usePageTitle'
 import { api, json } from '../lib/api'
 import { loginSchema, registerSchema, type LoginValues, type RegisterValues } from '../lib/schemas'
 import { homeFor } from '../lib/roles'
@@ -15,6 +16,7 @@ function AuthFrame({ children, register = false }: { children: React.ReactNode; 
   return <div className="auth-page"><div className="auth-main"><div className="auth-top"><Brand /><A11yMenu compact /></div><div className="auth-content"><p className="eyebrow">BIENVENIDO A SU NUEVO ESPACIO</p><h1>{register ? 'El cuidado empieza aquí.' : 'Qué bueno verte de nuevo.'}</h1><p className="muted">{register ? 'Crea tu cuenta y reúne a toda tu familia de cuatro patas.' : 'Tus compañeros y sus próximos cuidados te esperan.'}</p>{children}</div><p className="auth-footer"><LockKeyhole size={15} /> Tu información, en tu espacio personal.</p></div><aside className="auth-visual"><img src={petPhoto} alt="" /><div><p className="eyebrow">SIEMPRE A SU LADO</p><h2>Para ellos eres<br />todo su mundo.</h2><p>Hagamos que cuidar del suyo sea más sencillo.</p></div></aside></div>
 }
 export function Register() {
+  usePageTitle('Crea tu cuenta')
   const navigate = useNavigate()
   const [error, setError] = useState<Error | null>(null)
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({ resolver: zodResolver(registerSchema) })
@@ -33,6 +35,7 @@ export function Register() {
   </form><p className="auth-switch">¿Ya tienes una cuenta? <Link to="/iniciar-sesion">Inicia sesión</Link></p></AuthFrame>
 }
 export function Login() {
+  usePageTitle('Iniciar sesión')
   const location = useLocation()
   const navigate = useNavigate()
   const client = useQueryClient()

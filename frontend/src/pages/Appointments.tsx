@@ -155,7 +155,7 @@ export function AppointmentForm() {
         {service && <><hr /><h3>{service.name}</h3><p>{service.description}</p><div className="service-meta"><span><Clock3 size={16} />{service.duration_minutes} min</span><strong className="money">{money(service.price)}</strong></div></>}
         {startsAt && <p style={{ marginTop: 14 }}><strong>{relativeDate(limaParts(startsAt).date)} · {timeOnly(startsAt)}</strong></p>}
         <div className="booking-info"><Info size={20} /><p>Tu solicitud queda «Por confirmar» hasta que la veterinaria la confirme. Horarios en hora de Lima.</p></div></div>
-        <p className="catalog-disclaimer">Veterinarias y precios de demostración. El pago se realiza en la veterinaria.</p></aside></div></>
+        <p className="catalog-disclaimer">Precios referenciales. El pago se realiza en la veterinaria.</p></aside></div></>
 }
 
 export function AppointmentDetail() {

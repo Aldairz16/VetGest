@@ -1,5 +1,6 @@
-import { useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import {
+  AccessibilityInfo,
   ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView,
   StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle,
 } from 'react-native'
@@ -299,6 +300,18 @@ export function InfoLine({ icon, children }: { icon: IconName; children: ReactNo
   </View>
 }
 
+/** Respeta «Reducir movimiento» del sistema (WCAG 2.3.3). */
+function useReduceMotion() {
+  const [reduce, setReduce] = useState(false)
+  useEffect(() => {
+    let alive = true
+    void AccessibilityInfo.isReduceMotionEnabled().then(v => { if (alive) setReduce(v) })
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce)
+    return () => { alive = false; sub.remove() }
+  }, [])
+  return reduce
+}
+
 // ---------- Hoja de confirmación (MASTER §4.3: dentro de la app, con la consecuencia) ----------
 export function ConfirmSheet({ open, title, children, confirmLabel, cancelLabel = 'Mantener', pending, error, onCancel, onConfirm }: {
   open: boolean; title: string; children: ReactNode; confirmLabel: string; cancelLabel?: string; pending?: boolean; error?: unknown
@@ -306,7 +319,8 @@ export function ConfirmSheet({ open, title, children, confirmLabel, cancelLabel 
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
-  return <Modal visible={open} transparent animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
+  const reduceMotion = useReduceMotion()
+  return <Modal visible={open} transparent animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={onCancel} statusBarTranslucent>
     <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
       <Pressable style={{ flex: 1 }} onPress={pending ? undefined : onCancel} accessibilityLabel={cancelLabel} accessibilityRole="button" />
       <View style={[styles.sheet, { backgroundColor: theme.card, paddingBottom: Math.max(insets.bottom, space.lg) }]} accessibilityViewIsModal>

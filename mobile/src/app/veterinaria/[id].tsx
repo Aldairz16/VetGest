@@ -32,6 +32,6 @@ export default function ClinicDetail() {
       <Button label="Pedir turno" variant="secondary" icon="calendar" accessibilityHint={`Pedir turno de ${s.name} en ${c.name}`}
         onPress={() => router.push({ pathname: '/citas/nueva', params: { clinic: String(c.id), service: String(s.id) } })} />
     </Card>) : <EmptyState title="Aún no hay servicios">Esta veterinaria todavía no tiene servicios publicados.</EmptyState>}
-    <T variant="small">Catálogo ficticio de demostración. Una solicitud queda pendiente; no equivale a una reserva confirmada.</T>
+    <T variant="small">Tu solicitud queda por confirmar hasta que la veterinaria la acepte.</T>
   </Screen>
 }

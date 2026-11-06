@@ -87,7 +87,7 @@ export function Cashier() {
           {date === todayLima() && <div className="total-chip"><span>Pendiente · {pending.data?.length ?? 0}</span><strong>{money(owed)}</strong></div>}
         </div>
         {!payments.data.length ? <div className="panel"><EmptyState title="Sin cobros este día">Los cobros que registres aparecerán aquí con su método para cuadrar el cajón y Yape.</EmptyState></div>
-          : <div className="panel table-wrap"><table className="data-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Servicio</th><th>Método</th><th>Monto</th><th>Recibió</th>{canVoid && <th><span className="sr-only">Acciones</span></th>}</tr></thead>
+          : <div className="panel table-wrap" tabIndex={0} role="region" aria-label="Cobros del día"><table className="data-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Servicio</th><th>Método</th><th>Monto</th><th>Recibió</th>{canVoid && <th><span className="sr-only">Acciones</span></th>}</tr></thead>
             <tbody>{payments.data.map(p => <tr key={p.id} className={p.voided_at ? 'voided' : ''}>
               <td>{timeOnly(p.paid_at)}</td><td><strong>{p.pet_name}</strong><small>{p.owner_name}</small></td><td>{p.service_name}</td>
               <td>{p.voided_at ? <><Badge status="Anulado" /><small>{p.method} · {p.void_reason}</small></> : <Badge status="Pagada" label={p.method} />}</td><td>{money(Number(p.amount))}</td><td>{personName(p.received_by)}</td>

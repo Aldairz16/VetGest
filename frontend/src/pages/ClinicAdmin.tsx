@@ -41,7 +41,7 @@ export function Team() {
   return <><PageHeader eyebrow="PERSONAS Y PERMISOS" title="Equipo" description="Recepción gestiona la agenda; veterinarios registran atenciones; administradores además gestionan equipo y servicios." action={!adding && <button className="button" onClick={() => { setNotice(''); setAdding(true) }}><Plus size={18} />Añadir miembro</button>} />
     {notice && <Notice>{notice}</Notice>}{mutation.isError && <ErrorState error={mutation.error} />}
     {adding && <StaffForm onDone={email => { setAdding(false); setNotice(`Cuenta creada para ${email}.`) }} />}
-    {staff.isPending ? <Loading /> : staff.isError ? <ErrorState error={staff.error} retry={() => void staff.refetch()} /> : <div className="panel table-wrap"><table className="data-table"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>
+    {staff.isPending ? <Loading /> : staff.isError ? <ErrorState error={staff.error} retry={() => void staff.refetch()} /> : <div className="panel table-wrap" tabIndex={0} role="region" aria-label="Equipo"><table className="data-table"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>
       {staff.data.map(s => { const self = s.user_id === me.data?.id; return <tr key={s.user_id}>
         <td><strong>{fullName(s.profile)}</strong><small>{s.profile.phone}</small></td><td>{s.email}</td>
         <td>{self ? roleLabel[s.role] : <select aria-label={`Rol de ${fullName(s.profile)}`} value={s.role} disabled={mutation.isPending} onChange={e => mutation.mutate({ user_id: s.user_id, role: e.target.value as ClinicRole, is_active: s.is_active })}><option value="reception">Recepción</option><option value="vet">Veterinario</option><option value="admin">Administrador</option></select>}</td>
@@ -73,7 +73,7 @@ export function Services() {
   return <><PageHeader eyebrow="CATÁLOGO" title="Servicios" description="Los servicios retirados dejan de mostrarse, pero se conservan en citas anteriores." action={!editing && <button className="button" onClick={() => setEditing('new')}><Plus size={18} />Nuevo servicio</button>} />
     {editing && <ServiceForm key={editing === 'new' ? 'new' : editing.id} service={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />}
     {services.isPending ? <Loading /> : services.isError ? <ErrorState error={services.error} retry={() => void services.refetch()} /> : !services.data.length ? <div className="panel"><EmptyState title="Sin servicios">Publica tu primer servicio para recibir solicitudes.</EmptyState></div>
-      : <div className="panel table-wrap"><table className="data-table"><thead><tr><th>Servicio</th><th>Duración</th><th>Precio</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{services.data.map(s => <tr key={s.id}>
+      : <div className="panel table-wrap" tabIndex={0} role="region" aria-label="Servicios"><table className="data-table"><thead><tr><th>Servicio</th><th>Duración</th><th>Precio</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{services.data.map(s => <tr key={s.id}>
         <td><strong>{s.name}</strong><small>{s.description}</small></td><td>{s.duration_minutes} min</td><td>{money(s.price)}</td><td><Badge status={s.is_active ? 'Activa' : 'Inactivo'} /></td>
         <td className="actions"><button className="text-link" onClick={() => setEditing(s)}><Pencil size={15} /> Editar</button></td></tr>)}</tbody></table></div>}
   </>
@@ -171,7 +171,7 @@ function Movements({ item, onClose }: { item: InventoryItem; onClose: () => void
   const movements = useMovements(item.id)
   return <section className="panel" style={{ marginTop: 24 }} aria-labelledby="movements-title"><div className="section-heading"><h2 id="movements-title" className="heading-icon"><HistoryIcon size={18} />Movimientos · {item.name}</h2><button className="text-link" onClick={onClose}>Cerrar</button></div>
     {movements.isPending ? <Loading /> : movements.isError ? <ErrorState error={movements.error} retry={() => void movements.refetch()} /> : !movements.data.length ? <EmptyState title="Sin movimientos">Los ingresos, ajustes y usos en atención aparecerán aquí.</EmptyState>
-      : <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Notas</th><th>Registró</th></tr></thead><tbody>{movements.data.map(m => <tr key={m.id}>
+      : <div className="table-wrap" tabIndex={0} role="region" aria-label="Movimientos del producto"><table className="data-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Notas</th><th>Registró</th></tr></thead><tbody>{movements.data.map(m => <tr key={m.id}>
         <td>{dateTime(m.created_at)}</td><td>{m.kind}{m.care_event_id && <small>Atención #{m.care_event_id}</small>}</td><td><strong>{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</strong> {item.unit}</td><td>{m.notes || <span className="muted">—</span>}</td><td>{personName(m.user)}</td></tr>)}</tbody></table></div>}
   </section>
 }
@@ -198,7 +198,7 @@ export function Inventory() {
     {mode?.kind === 'edit' && <InventoryForm key={mode.item.id} item={mode.item} onDone={done} />}
     {(mode?.kind === 'Ingreso' || mode?.kind === 'Ajuste') && <MovementForm key={`${mode.kind}-${mode.item.id}`} item={mode.item} kind={mode.kind} onDone={done} />}
     {inventory.isPending ? <Loading /> : inventory.isError ? <ErrorState error={inventory.error} retry={() => void inventory.refetch()} /> : !inventory.data.length ? <div className="panel"><EmptyState title="Inventario vacío">Agrega vacunas, antiparasitarios, medicamentos o insumos para controlar su stock.</EmptyState></div>
-      : <div className="panel table-wrap"><table className="data-table"><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{sorted.map(i => <tr key={i.id} className={i.low_stock && i.is_active ? 'low-stock' : ''}>
+      : <div className="panel table-wrap" tabIndex={0} role="region" aria-label="Inventario"><table className="data-table"><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{sorted.map(i => <tr key={i.id} className={i.low_stock && i.is_active ? 'low-stock' : ''}>
         <td><strong>{i.name}</strong><small>{i.unit}</small></td><td>{i.category}</td><td><strong>{i.stock}</strong> {i.unit}</td><td>{i.min_stock}</td>
         <td>{!i.is_active ? <Badge status="Inactivo" /> : i.stock <= 0 ? <Badge status="Sin stock" /> : i.low_stock ? <Badge status="Stock bajo" /> : <Badge status="Con stock" />}</td>
         <td className="actions"><div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
@@ -225,7 +225,7 @@ function pendingOf(p: IncomeReportData['pending']) {
 
 function BreakdownTable({ title, rows, labelHeader, formatLabel = (l: string) => l }: { title: string; rows: { label: string; total: number; count?: number }[]; labelHeader: string; formatLabel?: (l: string) => string }) {
   return <section className="panel"><div className="section-heading"><h2>{title}</h2></div>
-    {!rows.length ? <p className="wait-empty">Sin cobros en el periodo.</p> : <div className="table-wrap"><table className="data-table"><thead><tr><th>{labelHeader}</th><th>Cobros</th><th>Total</th></tr></thead>
+    {!rows.length ? <p className="wait-empty">Sin cobros en el periodo.</p> : <div className="table-wrap" tabIndex={0} role="region" aria-label="Cobros del periodo"><table className="data-table"><thead><tr><th>{labelHeader}</th><th>Cobros</th><th>Total</th></tr></thead>
       <tbody>{rows.map(r => <tr key={r.label}><td>{formatLabel(r.label)}</td><td>{r.count ?? '—'}</td><td><strong>{money(r.total)}</strong></td></tr>)}</tbody></table></div>}
   </section>
 }

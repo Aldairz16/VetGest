@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import type { UseQueryResult } from '@tanstack/react-query'
 import { AlertCircle, ArrowLeft, Armchair, BadgeCheck, Bird, CalendarCheck, Cat, CircleCheck, CircleX, Clock, Dog, LoaderCircle, PawPrint, RefreshCw, Stethoscope, TriangleAlert, UserX, Wallet, X, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -24,7 +25,9 @@ export function EmptyState({ title, children, action }: { title: string; childre
   return <div className="empty-state"><span className="empty-icon"><PawPrint size={30} /></span><h3>{title}</h3><p>{children}</p>{action}</div>
 }
 export function PageHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description?: string; action?: ReactNode }) {
-  return <div className="page-heading"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description && <p className="muted">{description}</p>}</div>{action}</div>
+  usePageTitle(title)
+  // tabIndex -1: el Layout mueve aquí el foco al cambiar de pantalla.
+  return <div className="page-heading"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1 tabIndex={-1}>{title}</h1>{description && <p className="muted">{description}</p>}</div>{action}</div>
 }
 export function Field({ id, label, error, hint, children, full = false }: { id: string; label: string; error?: string; hint?: string; children: ReactNode; full?: boolean }) {
   return <div className={`field ${full ? 'full' : ''}`}><label htmlFor={id}>{label}</label>{children}{hint && <span className="field-hint" id={`${id}-hint`}>{hint}</span>}{error && <span className="field-error" role="alert" id={`${id}-error`}>{error}</span>}</div>

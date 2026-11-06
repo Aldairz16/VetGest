@@ -14,7 +14,7 @@ import { useNow } from '../lib/useNow'
 const STATUSES: AppointmentStatus[] = ['Pendiente', 'Confirmada', 'Atendida', 'Cancelada', 'No asistió']
 
 function AgendaTable({ items, showDate = true }: { items: ClinicAppointment[]; showDate?: boolean }) {
-  return <div className="panel table-wrap"><table className="data-table"><thead><tr><th>{showDate ? 'Fecha y hora' : 'Hora'}</th><th>Paciente</th><th>Propietario</th><th>Servicio</th><th>Veterinario</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead>
+  return <div className="panel table-wrap" tabIndex={0} role="region" aria-label="Agenda"><table className="data-table"><thead><tr><th>{showDate ? 'Fecha y hora' : 'Hora'}</th><th>Paciente</th><th>Propietario</th><th>Servicio</th><th>Veterinario</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead>
     <tbody>{items.map(a => <tr key={a.id}>
       <td>{showDate ? dateTime(a.starts_at) : timeOnly(a.starts_at)}</td>
       <td><strong>{a.pet.name}</strong><small>{a.pet.species} · {a.pet.breed}</small></td>
